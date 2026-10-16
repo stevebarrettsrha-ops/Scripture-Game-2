@@ -15,6 +15,9 @@
    the last pixel, and how near the eye stands to it; a frame that breaks the rule is reported,
    with the scene and the time. (Yahusha's face is never drawn; the eye keeps its distance.)
 
+   EVERY=n photographs every nth caption only; every film is still gone through end to end, a quarter
+   of a second at a time, with the face rule asked at each moment (nothing drawn — see `sweep`).
+
    LIBRARY=1: and then the Scroll Library and the whole Bible — the Library with no voyage (all
    open), the Library with a voyage that has gathered some scrolls and not others (gap cards), and
    the whole Bible's title card of an age, a gap card, a verse card and a film coming on:
@@ -50,10 +53,22 @@ const fs=require('fs'), path=require('path');
       },S.id);
       if(caps.err){ bad++; console.log(S.id+': '+caps.err); continue; }
       const dir=path.join(outDir,S.id); fs.mkdirSync(dir,{recursive:true});
+      /* THE WHOLE FILM, END TO END, a quarter of a second at a time: every key, player, thing and
+         sign set as it would be at that moment, and the face rule asked at each — nothing drawn, so
+         the whole length of every film can be gone through where only its captions are photographed */
+      const sweep=await page.evaluate(()=>{ const d=STAGE.dur(); let n=0, holy=0; const badT=[]; let err=null;
+        try{ for(let t=0;t<d-0.05;t+=0.25){ STAGE.seek(t); STAGE.tick(0); const r=STAGE.faceRule(); n++;
+          if(r.holy.some(h=>h.shown)) holy++; if(!r.ok&&badT.length<6) badT.push({t:+t.toFixed(2),holy:r.holy}); } }
+        catch(e){ err=String(e&&e.stack||e).split('\n').slice(0,3).join(' | '); }
+        STAGE.seek(0); return {n,holy,bad:badT,err}; });
+      if(sweep.err){ bad++; console.log(S.id+': the film could not be gone through: '+sweep.err); }
+      if(sweep.bad.length){ bad++; console.log(S.id+': THE FACE RULE BROKEN at '+JSON.stringify(sweep.bad)); }
       const empty=caps.caps.filter(c=>!c.text||!c.text.trim());
       if(empty.length){ bad++; console.log(S.id+': '+empty.length+' caption(s) came back with no words: '+empty.map(c=>c.ref||('@'+c.t)).join(', ')); }
       const REFS=(process.env.REFS||'').split(',').map(x=>x.trim()).filter(Boolean);   /* REFS="1:20,3:2": only the captions that open on that verse (3:2 finds 3:2-3, never 3:21) */
+      const EVERY=+(process.env.EVERY||1);           /* EVERY=2: every other caption photographed (and the last) */
       for(let i=0;i<caps.caps.length;i++){ const c=caps.caps[i], mid=(c.t+c.to)/2;
+        if(EVERY>1&&i%EVERY&&i!==caps.caps.length-1) continue;
         if(REFS.length&&!REFS.some(r=>new RegExp('\\s'+r.replace(/[.:]/g,'\\$&')+'(?:[-–][0-9:]+)?$').test(c.ref||''))) continue;
         await page.evaluate(async P=>{ STAGE.seek(P.mid);
           for(let k=0;k<P.FR;k++){ STAGE.seek(P.mid); await new Promise(r=>requestAnimationFrame(r)); } },{mid,FR});
@@ -67,7 +82,8 @@ const fs=require('fs'), path=require('path');
       const holyFrames=f1.holy-f0.holy, faceBad=f1.bad-f0.bad;
       if(faceBad){ bad++; console.log(S.id+': THE FACE RULE BROKEN on '+faceBad+' frame(s): '+JSON.stringify(f1.last)); }
       console.log(S.id.padEnd(14)+(se.length||empty.length||faceBad?'':'ok')+'  '+caps.caps.length+' captions, '+Math.round(S.dur)+' s'+
-        (holyFrames?'  · His face kept on '+holyFrames+' of '+(f1.frames-f0.frames)+' frames he is seen':''));
+        '  · gone through end to end at '+sweep.n+' moments'+(sweep.holy?', He is on the stage at '+sweep.holy+' and His face is blank and kept at each':'')+
+        (holyFrames?'  · and on '+holyFrames+' of '+(f1.frames-f0.frames)+' frames drawn':''));
     }
     await page.evaluate(()=>STORY.end(true));
 
@@ -79,23 +95,23 @@ const fs=require('fs'), path=require('path');
       /* 1 — no voyage: everything open */
       const all=await page.evaluate(()=>{ localStorage.removeItem('voyage:state'); STORY.end(true);
         window.__STORY_DONE(); const l=__UNFOLD.library(); return {n:l.length,open:l.filter(e=>e.open).length,films:l.filter(e=>e.film).length}; });
-      await frames(30); await page.screenshot({path:path.join(L,'01-library-all-open.png')});
+      await frames(6); await page.screenshot({path:path.join(L,'01-library-all-open.png')});
       console.log('library       no voyage: '+all.open+' of '+all.n+' open, '+all.films+' with a film');
       /* 2 — a voyage that has gathered some, and not the rest */
       const GOT=['bereshith','adam-eve-1','flood','abram','moriyah','shamoth','yericho','golyath','birth','tomb','hazon'];
       const some=await page.evaluate(G=>{ localStorage.setItem('voyage:state',JSON.stringify({v:8,sr:G})); __UNFOLD.rebuild();
         const l=__UNFOLD.library(); return {n:l.length,open:l.filter(e=>e.open).length,gaps:l.filter(e=>!e.open).map(e=>e.title+' — '+e.where.join(' · '))}; },GOT);
-      await frames(20); await page.screenshot({path:path.join(L,'02-library-gaps-top.png')});
-      await page.evaluate(()=>{ const l=document.getElementById('shelf-list'); l.scrollTop=l.scrollHeight*0.45; }); await frames(10);
+      await frames(4); await page.screenshot({path:path.join(L,'02-library-gaps-top.png')});
+      await page.evaluate(()=>{ const l=document.getElementById('shelf-list'); l.scrollTop=l.scrollHeight*0.45; }); await frames(3);
       await page.screenshot({path:path.join(L,'03-library-gaps-middle.png')});
-      await page.evaluate(()=>{ const l=document.getElementById('shelf-list'); l.scrollTop=l.scrollHeight; }); await frames(10);
+      await page.evaluate(()=>{ const l=document.getElementById('shelf-list'); l.scrollTop=l.scrollHeight; }); await frames(3);
       await page.screenshot({path:path.join(L,'04-library-gaps-end.png')});
       console.log('library       a voyage with '+GOT.length+' scrolls taken: '+some.open+' of '+some.n+' open; the gaps say:');
       for(const g of some.gaps.slice(0,40)) console.log('                '+g);
       /* 3 — the whole Bible: its first card, a gap card, a verse card, and a film coming on */
       const seq=await page.evaluate(()=>{ __UNFOLD.bible(); return LIBRARY.seq().map(x=>x.kind+(x.age?':'+x.age:x.e?':'+x.e.scrolls[0]:'')); });
       console.log('whole Bible   '+seq.length+' pieces: '+seq.join(' '));
-      const shoot=async(name,t)=>{ await page.evaluate(async t=>{ for(let k=0;k<24;k++){ STAGE.seek(t); await new Promise(r=>requestAnimationFrame(r)); } },t);
+      const shoot=async(name,t)=>{ await page.evaluate(async t=>{ for(let k=0;k<8;k++){ STAGE.seek(t); await new Promise(r=>requestAnimationFrame(r)); } },t);
         const s=await page.evaluate(()=>({id:STORY.playing()&&STORY.playing().id,title:document.getElementById('sc-title').textContent,card:document.getElementById('sc-card').textContent,cap:document.getElementById('sc-cap-t').textContent,ref:document.getElementById('sc-cap-r').textContent,bible:document.getElementById('sc-bible').textContent}));
         await page.screenshot({path:path.join(L,name)}); console.log('  '+name.padEnd(28)+JSON.stringify(s)); };
       await shoot('05-bible-age-card.png',3.0);

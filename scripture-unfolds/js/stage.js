@@ -514,7 +514,7 @@ window.STAGE=(function(){
         const one=mt=>{ const c=mt.clone(); if(c.emissive){ c.emissive.copy(c.color||new T.Color(0xffffff)).multiplyScalar(0.62); } return c; };
         o.material=Array.isArray(o.material)?o.material.map(one):one(o.material); });
       const sp=new T.Sprite(mats().glow.clone()); sp.position.y=7; sp.scale.set(30,30,1); sp.material.opacity=0.7; g.add(sp);
-      g.userData.halo=sp; g.userData.lit=true; }
+      g.userData.halo=sp; g.userData.lit=true; g.userData.noShadow=true; }   /* (and they throw no shade: the mal'akim are light) */
     function makeOne(c,i){
       const k=K(); if(!k||!k.makeFigure) return null;
       const look=Object.assign({},LOOK[c.as]||{},c), seed=look.seed||(i*7+3);
@@ -803,7 +803,7 @@ window.STAGE=(function(){
       /* ---- the signs ---- */
       for(const name in SIGN){ const v=+d[name]||0, spec=(sc.signs||{})[name];
         if(v>0.004&&!signs[name]&&(spec||SIGN[name].world)){ const g=new T.Group(); try{ SIGN[name](g,spec||{}); }catch(e){ g.userData.broken=true; }
-          root.add(g); signs[name]={g,spec:spec||{}}; }
+          g.userData.noShadow=true; root.add(g); signs[name]={g,spec:spec||{}}; }
         const s=signs[name]; if(!s) continue;
         s.g.visible=v>0.004; if(!s.g.visible||s.g.userData.broken) continue;
         if(!SIGN[name].world){

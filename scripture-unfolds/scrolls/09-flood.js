@@ -29,8 +29,8 @@ STORY.scene({
   musicAt:[[54,'storm'],[120,'eden'],[176,'holy']],
   next:null,
 
-  /* the ground made ready: the shoulder levelled under the ark and the trees taken off it */
-  set:{ clear:[-110,-40,110,70], level:[[-86,12,86,48,'dirt',10]] },
+  /* the ground made ready: the trees taken off the shoulder the ark is laid on */
+  set:{ clear:[-110,-40,110,70] },
 
   cast:[
     { id:'noah', as:'elder', robe:0x6e5a44, seed:4,
@@ -67,40 +67,40 @@ STORY.scene({
 
   stage:[
     /* a grey day on the shoulder of the mountain, the ark finished */
-    { t:  0, hour:10.5, dark:0.10, light:0.78, sky:0x8e9aa4, sun:0.35, moon:0, stars:0, firm:0,
+    { t:  0, hour:15.2, dark:0.10, light:0.78, sky:0x8e9aa4, sun:0.35, moon:0, stars:0, firm:0,
       land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1, glory:0, rain:0, flood:0, bow:0, dove:0,
       fogN:500, fogF:2400, cd:820, cy:200, ca:0.00, cl:30, cfov:58, ox:0, oz:26, cut:true },
     { t:  6, glory:0.7 },                                   /* "and Aluahim said to Noaḥ" — light over him */
-    { t: 18, cd:150, cy:40, cl:10, ox:22, oz:6, ca:0.02 },
+    { t: 18, cd:150, cy:40, cl:10, ox:22, oz:6, ca:0.01 },
     { t: 21, glory:0 },
-    { t: 34, cd:240, cy:52, cl:14, ox:24, oz:10, ca:0.04 },  /* the rooms, the tar within and without */
+    { t: 34, cd:240, cy:52, cl:14, ox:24, oz:10, ca:0.02 },  /* the rooms, the tar within and without */
     { t: 37, glory:0.6 },                                    /* "Come into the ark" */
-    { t: 48, glory:0, cd:300, cy:60, cl:16, ox:26, oz:14, ca:0.06 },
+    { t: 48, glory:0, cd:300, cy:60, cl:16, ox:26, oz:14, ca:0.03 },
     /* ---- the windows of the shamayim opened — in the dark between ---- */
     { t: 53 },
     { t: 56, hour:16, dark:0.48, light:0.40, sky:0x2e343a, sun:0, clouds:1, rain:1, flood:0.02,
-      fogN:220, fogF:1300, cd:760, cy:150, cl:30, ox:0, oz:30, ca:0.10, cut:true },
+      fogN:220, fogF:1300, cd:760, cy:150, cl:30, ox:0, oz:30, ca:0.00, cut:true },
     /* (the eye goes up with the waters, and looks where the ark rides: the face of the flood stands
        its dial times sixty-four metres over this ground, less four, and the ark five under that) */
-    { t: 84, flood:0.40, cd:780, cy:300, cl:110, ca:0.13 },          /* forty days and forty nights */
-    { t:102, flood:0.75, dark:0.54, light:0.34, sky:0x262b30, cd:820, cy:440, cl:255, ca:0.16 },
-    { t:120, flood:1.0, cd:900, cy:600, cl:355, ca:0.19, fogN:160, fogF:1500 },
+    { t: 84, flood:0.40, cd:780, cy:300, cl:110, ca:0.01 },          /* forty days and forty nights */
+    { t:102, flood:0.75, dark:0.54, light:0.34, sky:0x262b30, cd:820, cy:440, cl:255, ca:0.02 },
+    { t:120, flood:1.0, cd:900, cy:600, cl:355, ca:0.03, fogN:160, fogF:1500 },
     /* ---- and Aluahim remembered Noaḥ — in the dark between ---- */
     { t:124 },
-    { t:127, hour:9, dark:0.16, light:0.72, sky:0x8a9cac, sun:0.4, rain:0, flood:0.85,
-      fogN:400, fogF:2200, cd:880, cy:540, cl:295, ca:0.22, cut:true },
-    { t:142, flood:0.30, dark:0.06, light:0.86, sky:0x9cb4c8, sun:0.7, cd:840, cy:320, cl:70, ca:0.24 },
-    { t:156, flood:0.0, dark:0, light:0.95, sky:0xa6c0d6, sun:0.9, cd:860, cy:260, cl:30, ca:0.26 },  /* rested on the mountains of Ararat */
+    { t:127, hour:14, dark:0.16, light:0.72, sky:0x8a9cac, sun:0.4, rain:0, flood:0.85,
+      fogN:400, fogF:2200, cd:880, cy:540, cl:295, ca:0.00, cut:true },
+    { t:142, flood:0.30, dark:0.06, light:0.86, sky:0x9cb4c8, sun:0.7, cd:840, cy:320, cl:70, ca:0.01 },
+    { t:156, flood:0.0, dark:0, light:0.95, sky:0xa6c0d6, sun:0.9, cd:860, cy:260, cl:30, ca:0.02 },  /* rested on the mountains of Ararat */
     /* ---- the evening of the dove ---- */
     { t:158 },
-    { t:160, hour:18.4, light:0.74, sky:0xc89a74, sun:0.5, cd:220, cy:60, cl:40, ox:24, oz:16, ca:0.28, dove:0, cut:true },
-    { t:173, dove:1, cd:180, cy:56, cl:44, ca:0.29 },
+    { t:160, hour:18.4, light:0.74, sky:0xc89a74, sun:0.5, cd:220, cy:60, cl:40, ox:24, oz:16, ca:0.00, dove:0, cut:true },
+    { t:173, dove:1, cd:180, cy:56, cl:44, ca:0.01 },
     /* ---- and the morning of the bow ---- */
     { t:175 },
-    { t:178, hour:8, light:0.95, sky:0x9cbcd8, sun:0.8, clouds:1, bow:0, cd:380, cy:60, cl:24, ox:18, oz:8, ca:0.31, cut:true },
+    { t:178, hour:16.4, light:0.95, sky:0x9cbcd8, sun:0.8, clouds:1, bow:0, cd:380, cy:60, cl:24, ox:18, oz:8, ca:0.00, cut:true },
     { t:184, bow:1 },
-    { t:200, cd:520, cy:80, cl:40, ca:0.33 },
-    { t:214, cd:560, cy:90, ca:0.34 },
+    { t:200, cd:520, cy:80, cl:40, ca:0.01 },
+    { t:214, cd:560, cy:90, ca:0.02 },
   ],
 
   titles:[
