@@ -11,7 +11,7 @@
 
    Nothing here reads the source. Every one of them boots the game in a
    headless browser and asks the running world. */
-const {open,sail}=require('./harness.js');
+const {open,sail,BOOT_MS}=require('./harness.js');
 
 /* What an ocean chunk and a plains chunk cost the mesher to build, in
    milliseconds, measured on THIS machine's software rasteriser at the
@@ -6459,7 +6459,7 @@ T[12]={name:'ocean and plains chunks build no slower than they did',
   });
   const ctx={ reload:async()=>{ await page.reload();
     await page.waitForFunction(()=>window.__VDBG&&document.getElementById('menu')&&
-      getComputedStyle(document.getElementById('menu')).display!=='none',null,{timeout:180000});
+      getComputedStyle(document.getElementById('menu')).display!=='none',null,{timeout:BOOT_MS});
     await page.evaluate(()=>document.getElementById('m-continue').click());
     await page.waitForTimeout(4000); } };
   let pass=0, pend=0, fail=0;

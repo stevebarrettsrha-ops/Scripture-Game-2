@@ -14,6 +14,12 @@ catch(e){ ({chromium}=require(require('child_process')
   .execSync('npm root -g').toString().trim()+'/playwright')); }
 
 const EXEC=process.env.PW_CHROMIUM||undefined;
+/* ---- HOW LONG A WORLD MAY TAKE TO STAND ----
+   Three minutes was always enough on a quiet box. On a busy one — several
+   worlds raised at once on four cores, the software rasteriser drawing every
+   one — the menu has been seen to take six, and a suite that gives up at
+   three tests nothing. The wait is the same unless BOOT_MS asks for more. */
+const BOOT_MS=+process.env.BOOT_MS||180000;
 
 async function open(opts){
   opts=opts||{};
@@ -50,7 +56,7 @@ async function open(opts){
     if(opts.page) return {browser,page,errs};
     /* the world builds under the loading screen; the menu is the sign it stands */
     await page.waitForFunction(()=>window.__VDBG&&document.getElementById('menu')&&
-      getComputedStyle(document.getElementById('menu')).display!=='none',null,{timeout:180000});
+      getComputedStyle(document.getElementById('menu')).display!=='none',null,{timeout:BOOT_MS});
     return {browser,page,errs};
   }catch(e){ try{ await browser.close(); }catch(_){} throw e; }
 }
@@ -98,9 +104,9 @@ async function sail(page,roam){
     b.click(); const c=document.getElementById('mc-anew');
     if(c&&getComputedStyle(document.getElementById('m-confirm')).display!=='none') c.click(); },!!roam);
   await page.waitForFunction(()=>window.__VDBG&&window.__VDBG.state&&window.__VDBG.state.begun!==false&&
-    getComputedStyle(document.getElementById('boot')).display==='none',null,{timeout:180000});
+    getComputedStyle(document.getElementById('boot')).display==='none',null,{timeout:BOOT_MS});
   await page.waitForTimeout(1500);
   await holdClock(page);              /* see above — never the room's clock */
 }
 async function shot(page,file){ await page.screenshot({path:file}); return file; }
-module.exports={open,sail,shot,holdClock,holdHour,ROOT};
+module.exports={open,sail,shot,holdClock,holdHour,ROOT,BOOT_MS};
