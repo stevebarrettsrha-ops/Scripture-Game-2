@@ -80,7 +80,7 @@ const DEF={
       api.mark('ishtarGate',x,N+26); api.mark('ishtarOut',x,N-O-14);
       /* the way of the lions north of the gate, across the moat to the outer town: walls of blue brick with
          lions of yellow brick striding toward the gate */
-      box(x-10,-3.6,N-O-54,x+10,0,N-O-14,BR);                                                  /* (the causeway over the moat) */
+      box(x-16,-6,N-O-56,x+16,0,N-O-12,BR);                                                    /* (the causeway over the moat) */
       for(let z=N-O-8;z>N-O-230;z-=3){ api.top(x-10,z-3,x+10,z,HS);
         for(const s of [-1,1]){ const gy=K.g(x+s*12.5,z); box(K.sx(x+s*12.5)-(s<0?0:M),gy-M,z-3,K.sx(x+s*12.5)+(s<0?M:0),gy+7,z,GB,{foot:true});
           if(((z-N)%9)<3) box(x+s*11.9-0.25,gy+2.2,z-2.6,x+s*11.9+0.25,gy+3.6,z-0.4,ST); } }

@@ -98,7 +98,8 @@ const DEF={
       K.hall(x0,z0,x1,z1,(hsh(bx,7)<0.4?7.4:4.6),MB,{courts,doors:[[(x0+x1)/2,z0,0.9,2.6],[(x0+x1)/2,z1,0.9,2.6]]});
       if(++nm%10===0) yield; }
     yield;
-    for(let k=0;k<180;k++){ const z=-2600+hsh(k,9)*5200, x=NX-210-10-hsh(k,13)*90; if(!free(x,z,2)&&z>-950&&z<770) continue; K.palm(x,z,8+hsh(k,15)*5); }
+    const nile=z=>{ const P=DEF.ground.waters[0].pts; for(let i=0;i+1<P.length;i++) if(z>=P[i][1]&&z<=P[i+1][1]) return P[i][0]+(P[i+1][0]-P[i][0])*(z-P[i][1])/(P[i+1][1]-P[i][1]); return NX; };
+    for(let k=0;k<180;k++){ const z=-2600+hsh(k,9)*5200, x=nile(z)-215-hsh(k,13)*90; if(!free(x,z,2)&&z>-950&&z<770) continue; K.palm(x,z,8+hsh(k,15)*5); }
     for(let k=0;k<70;k++){ const x=-800+hsh(k,21)*1300, z=-400+hsh(k,23)*1100; if(free(x,z,6)&&Math.hypot(x-SQ[0],z-SQ[1])>50) K.palm(x,z,7+hsh(k,25)*4); }
     api.townGround([[-830,-420],[NX-220,-420],[NX-220,770],[-830,770]]);
     yield;

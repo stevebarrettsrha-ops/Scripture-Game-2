@@ -71,6 +71,15 @@ window.ANCIENT_KIT=function(api,def){
       else { if(q>=1) continue; f=Math.min(1,(1-q)/(H[5]||0.5)); }
       const m=H[2]*f*f*(3-2*f); if(m>top) top=m; }
     return Math.max(Math.round(y/MPB),top>0?Math.round(top/MPB):-1e9)*MPB; };
+  /* whether a point is within `m` metres of her water as her ground has it: a river, a moat, a pool, a cut
+     harbour or the sea she keeps (the earth's own sea beyond her is known only at the point itself) */
+  const inP=(x,z,P)=>{ let c=false; for(let i=0,j=P.length-1;i<P.length;j=i++){ const a=P[i], b=P[j]; if(((a[1]>z)!==(b[1]>z))&&(x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])) c=!c; } return c; };
+  const dP=(P,x,z)=>{ let b=1e18; for(let i=0;i+1<P.length;i++){ const ax=P[i][0], az=P[i][1], dx=P[i+1][0]-ax, dz=P[i+1][1]-az, t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz||1))); b=Math.min(b,Math.hypot(x-ax-dx*t,z-az-dz*t)); } return b; };
+  K.wet=(x,z,m)=>{ m=m||0; if((G.land||[]).some(P=>inP(x,z,P.pts||P))&&!(G.cut||[]).some(P=>inP(x,z,P))) return false;
+    if((G.waters||[]).some(W=>dP(W.pts,x,z)<=W.w/2+m)) return true;
+    if((G.pools||[]).some(Q=>x>=Math.min(Q[0],Q[2])-m&&x<=Math.max(Q[0],Q[2])+m&&z>=Math.min(Q[1],Q[3])-m&&z<=Math.max(Q[1],Q[3])+m)) return true;
+    if([...(G.cut||[]),...(G.sea||[])].some(P=>inP(x,z,P))) return true;
+    return api.baseY!==undefined&&K.g(x,z)<0.9+(0.35-api.baseY)/(api.S||6.5); };   /* (and the earth's own sea: her bed under its face) */
   /* the lowest ground under a footprint: its corners, its edges' middles and its middle */
   K.foot=(x0,z0,x1,z1)=>{ let m=Infinity; for(const fx of [0,0.5,1]) for(const fz of [0,0.5,1]) m=Math.min(m,K.g(x0+(x1-x0)*fx,z0+(z1-z0)*fz)); return m; };
   /* a mass standing on the ground under the whole of it, sunk a course into it */
@@ -95,7 +104,9 @@ window.ANCIENT_KIT=function(api,def){
         if(gates.some(g=>Math.hypot(mx-g[0],mz-g[1])<g[2])) continue;
         /* (a wall that runs aslant the blocks cannot be laid hollow; it is laid solid and no thicker than five
            metres, its breadth stepped like a stair) */
-        const tt=(ax||az)?t:Math.min(t,5), rx=Math.abs(ex-sx)/2+tt/2, rz=Math.abs(ez-sz)/2+tt/2;
+        /* (a piece square to the blocks reaches no further along the wall than its own length, save at the
+           wall's corners and ends, so its gates stand open their whole breadth) */
+        const tt=(ax||az)?t:Math.min(t,5), ext=(ax||az)&&k>0&&k<n-1?0:tt/2, rx=Math.abs(ex-sx)/2+(ax?ext:tt/2), rz=Math.abs(ez-sz)/2+(az?ext:tt/2);
         /* (o.from: a wall that rises out of the sea is laid up from the bed, there being no ground to foot it on) */
         const y=o.from!==undefined?K.sy(o.from)+MPB:K.sy(K.foot(mx-rx,mz-rz,mx+rx,mz+rz)), top=K.sy((o.from!==undefined?0:K.g(mx,mz))+h);
         const a0=K.sx(mx-rx), a1=K.sx(mx+rx), b0=K.sx(mz-rz), b1=K.sx(mz+rz);
@@ -106,10 +117,11 @@ window.ANCIENT_KIT=function(api,def){
         if(o.crenel!==false&&k%2===0){ const cx=ax?rx*0.45:Math.min(rx,0.55), cz=az?rz*0.45:Math.min(rz,0.55);   /* merlons on the outer face */
           const ox=az?(o.out||1)*(rx-0.55):0, oz=ax?(o.out||1)*(rz-0.55):0;
           box(mx+ox-cx,top,mz+oz-cz,mx+ox+cx,top+1.3,mz+oz+cz,m); }
-        if(every&&run>=every){ run=0; K.tower(mx,mz,tw,tw,h+th,m); } } }
+        if(every&&run>=every&&!gates.some(g=>Math.hypot(mx-g[0],mz-g[1])<g[2]+tw/2+Math.max(7,t+3))){ run=0; K.tower(mx,mz,tw,tw,h+th,m,o.from!==undefined?{from:o.from}:undefined); } } }
     for(const gt of gates){ K.gate(pts,gt,Object.assign({},o,{h,t,m})); } };
   /* a tower standing on its own lowest ground, crenellated */
-  K.tower=(x,z,w,d,h,m,o)=>{ const a0=K.sx(x-w/2), a1=K.sx(x+w/2), b0=K.sx(z-d/2), b1=K.sx(z+d/2), y=K.sy(K.foot(a0,b0,a1,b1)), top=K.sy(K.g(x,z)+h);
+  /* (o.from: a tower out in the sea, on a mole's head, laid up from the bed) */
+  K.tower=(x,z,w,d,h,m,o)=>{ const a0=K.sx(x-w/2), a1=K.sx(x+w/2), b0=K.sx(z-d/2), b1=K.sx(z+d/2), y=K.sy(o&&o.from!==undefined?o.from:K.foot(a0,b0,a1,b1)), top=K.sy((o&&o.from!==undefined?0:K.g(x,z))+h);
     if(w>5&&d>5&&!(o&&o.solid)){ box(a0,y-MPB,b0,a1,y,b1,m,{foot:true});                   /* (its walls and its roof; the room within unseen) */
       K.carve([a0,y,b0,a1,top,b1],[[a0+MPB,y,b0+MPB,a1-MPB,top-MPB,b1-MPB]],m); }
     else box(a0,y-MPB,b0,a1,top,b1,m,{foot:true});
@@ -146,9 +158,9 @@ window.ANCIENT_KIT=function(api,def){
     if(list.length) api.quarter(list,o.style?{style:o.style}:undefined);
     return list.length; };
   /* a date palm, or an olive, or a cypress: its trunk and its crown, on its ground */
-  K.palm=(x,z,h)=>{ const y=K.g(x,z); h=h||9; box(x-0.45,y-MPB,z-0.45,x+0.45,y+h,z+0.45,'log'); box(x-2.4,y+h-0.5,z-0.6,x+2.4,y+h+0.6,z+0.6,'leaves'); box(x-0.6,y+h-0.5,z-2.4,x+0.6,y+h+0.6,z+2.4,'leaves'); box(x-1.2,y+h+0.4,z-1.2,x+1.2,y+h+1.4,z+1.2,'leaves'); };
-  K.tree=(x,z,h,kind)=>{ const y=K.g(x,z); h=h||4; box(x-0.45,y-MPB,z-0.45,x+0.45,y+h,z+0.45,kind==='olive'?'log-olive':'log'); box(x-2,y+h-1,z-2,x+2,y+h+1.4,z+2,kind==='olive'?'leaves-olive':'leaves'); };
-  K.cypress=(x,z,h)=>{ const y=K.g(x,z); h=h||10; box(x-0.45,y-MPB,z-0.45,x+0.45,y+2,z+0.45,'log'); box(x-1,y+1.5,z-1,x+1,y+h,z+1,'leaves'); };
+  K.palm=(x,z,h)=>{ if(K.wet(x,z,4)) return; const y=K.g(x,z); h=h||9; box(x-0.45,y-MPB,z-0.45,x+0.45,y+h,z+0.45,'log'); box(x-2.4,y+h-0.5,z-0.6,x+2.4,y+h+0.6,z+0.6,'leaves'); box(x-0.6,y+h-0.5,z-2.4,x+0.6,y+h+0.6,z+2.4,'leaves'); box(x-1.2,y+h+0.4,z-1.2,x+1.2,y+h+1.4,z+1.2,'leaves'); };
+  K.tree=(x,z,h,kind)=>{ if(K.wet(x,z,3)) return; const y=K.g(x,z); h=h||4; box(x-0.45,y-MPB,z-0.45,x+0.45,y+h,z+0.45,kind==='olive'?'log-olive':'log'); box(x-2,y+h-1,z-2,x+2,y+h+1.4,z+2,kind==='olive'?'leaves-olive':'leaves'); };
+  K.cypress=(x,z,h)=>{ if(K.wet(x,z,3)) return; const y=K.g(x,z); h=h||10; box(x-0.45,y-MPB,z-0.45,x+0.45,y+2,z+0.45,'log'); box(x-1,y+1.5,z-1,x+1,y+h,z+1,'leaves'); };
   /* A TEMPLE OF THE NATIONS ON ITS PODIUM: `len` along the way it faces (`dir`: 'n','s','e','w'), `wid` across,
      columns all about (peri) or at its front only (pro), a cella within, a pediment over */
   K.temple=(cx,cz,len,wid,o)=>{ o=o||{}; const dir=o.dir||'s', hp=o.podium||3, ch=o.colH||10, m=o.m||'marble', step=o.step||Math.max(2.4,ch*0.38), r=o.r||Math.max(0.5,ch*0.075);

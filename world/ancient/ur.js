@@ -32,7 +32,7 @@ const DEF={
       /* the canal along her east side */
       {pts:[[CX+RX+60,-900],[CX+RX+60,CZ],[CX+RX+20,1400]],w:20,level:-2,depth:2.5}
     ],
-    pools:[[CX-RX+60,40,CX-RX+170,140,-2.6,3.5],[CX-120,CZ-RZ+60,CX-10,CZ-RZ+150,-2.6,3.5]]
+    pools:[[CX-RX+35,40,CX-RX+125,140,-2.6,3.5],[CX-120,CZ-RZ+60,CX-10,CZ-RZ+150,-2.6,3.5]]
   },
   plan:function*(api){ const K=ANCIENT_KIT(api,DEF), box=K.box, hsh=K.hsh, M=K.MPB;
     const MB='mudbrick', BR='brick', BT='bitumen', GOLD='gold-leaf', HS='hewn-stone';
@@ -40,7 +40,7 @@ const DEF={
     /* ================= THE WALL OF UR-NAMMU ON ITS RAMPART ================= */
     { const pts=[]; for(let k=0;k<=40;k++){ const a=k/40*Math.PI*2; pts.push([CX+Math.cos(a)*RX,CZ+Math.sin(a)*RZ]); }
       /* (its gates: the north, the east, the south, and where the harbours' channels come through) */
-      const gates=[[CX,CZ-RZ,6,'gateNorth'],[CX+RX,CZ,6,'gateEast'],[CX,CZ+RZ,6,'gateSouth'],[CX-RX,90,16],[CX-50,CZ-RZ+30,14]];
+      const gates=[[CX,CZ-RZ,6,'gateNorth'],[CX+RX,CZ,6,'gateEast'],[CX,CZ+RZ,6,'gateSouth'],[CX-RX*Math.sqrt(1-((90-CZ)/RZ)**2),90,20],[60,CZ-RZ*Math.sqrt(1-((60-CX)/RX)**2),20]];
       K.wall(pts,{m:MB,h:7,t:4,towers:60,tw:8,th:3,gates});
       api.mark('gateNorthOut',CX,CZ-RZ-30); api.mark('gateEastOut',CX+RX+30,CZ); }
     yield;
@@ -48,9 +48,9 @@ const DEF={
     for(const Q of DEF.ground.pools){ const [x0,z0,x1,z1]=Q.map(K.sx);
       for(const [a0,b0,a1,b1] of [[x0-M,z0-M,x1+M,z0],[x0-M,z1,x1+M,z1+M],[x0-M,z0,x0,z1],[x1,z0,x1+M,z1]]) box(a0,-6.5,b0,a1,0.9,b1,BR);
       for(let k=0;k<5;k++) box((x0+x1)/2-3,-2.6+k*0.55,z1-1-k*0.9,(x0+x1)/2+3,-2.1+k*0.55,z1-k*0.9,BR);
-      for(let x=x0+6;x<x1-6;x+=14) K.hall(x,z0-16,x+11,z0-4,4.2,MB,{doors:[[x+5.5,z0-4]]});   /* the warehouses of the merchants */
+      for(let x=x0+6;x<x1-6;x+=14) if(!K.wet(x+5.5,z0-10,10)) K.hall(x,z0-16,x+11,z0-4,4.2,MB,{doors:[[x+5.5,z0-4]]});   /* the warehouses of the merchants */
     }
-    api.mark('westHarbour',CX-RX+115,150); api.mark('northHarbour',CX-65,CZ-RZ+160);
+    api.mark('westHarbour',CX-RX+80,150); api.mark('northHarbour',CX-65,CZ-RZ+160);
     yield;
 
     /* ================= THE TEMENOS OF NANNA ================= */
@@ -89,7 +89,7 @@ const DEF={
     const busy=[[T.x0-6,T.z0-6,T.x1+6,T.z1+6],[-70,165,120,275],[SQ[0]-32,SQ[1]-28,SQ[0]+32,SQ[1]+28]];
     const water=(x,z,m)=>DEF.ground.pools.some(Q=>x>Q[0]-20-m&&x<Q[2]+20+m&&z>Q[1]-22-m&&z<Q[3]+8+m)||
       Math.abs(z-90)<24+m&&x<CX-RX+80||(z<CZ-RZ+190&&x<CX+20&&x>CX-140);
-    const free=(x,z,m)=>{ m=m||0; if(!inOval(x,z,40+m)) return false; if(water(x,z,m)) return false;
+    const free=(x,z,m)=>{ m=m||0; if(!inOval(x,z,40+m)) return false; if(water(x,z,m)||K.wet(x,z,10+m)) return false;
       if(Math.abs(x-CX)<6+m&&z<T.z0||Math.abs(z+40)<6+m&&x>T.x1||Math.abs(x-60)<6+m&&z>T.z1||Math.abs(x-(CX+RX-10))<6+m) return false;
       return !busy.some(b=>x>b[0]-6-m&&x<b[2]+6+m&&z>b[1]-6-m&&z<b[3]+6+m); };
     /* the houses of the folk, close on their lanes about the square */

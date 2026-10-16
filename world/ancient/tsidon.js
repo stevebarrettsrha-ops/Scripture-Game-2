@@ -14,11 +14,14 @@
      · and south of the city, the strand where the purple-shell mound grew (left clear for the dyers),
        and the ground by the south harbour kept for the glass furnaces of the sand of the Belus. */
 (function(){
-const CAPE=[[-600,-340],[-690,-340],[-730,-300],[-735,-170],[-700,-110],[-600,-100]];
+const CAPE=[[-600,-340],[-690,-340],[-730,-300],[-735,-170],[-700,-110],[-575,-50],[-445,32],[-420,0],[-500,-80],[-500,-340]];
 const ISLET=[[-800,-385],[-745,-385],[-735,-355],[-740,-290],[-805,-290],[-815,-335]];
 const CAUSE=[[-745,-342],[-725,-342],[-725,-326],[-745,-326]];
 const C={x0:-610,x1:-150,z0:-430,z1:120};                          /* her walls about the city */
 const ACR={x:-250,z:40,rx:95,rz:85,h:22};
+/* the ring of her walls: on the land, and then along the sea about the cape */
+const LANDW=[[C.x0,C.z0],[C.x1,C.z0],[C.x1,C.z1],[-380,C.z1],[-455,10],[-560,-60]];
+const SEAW=[[-560,-60],[-700,-110],[-735,-170],[-735,-300],[-690,-340],[-600,-340]];
 const DEF={
   n:'Tsidon', land:'Lebanon', lat:33.5665, lon:35.3640, base:5, coast:true,
   square:[-310,-130], reach:1300, folk:80, style:'levant',
@@ -44,21 +47,21 @@ const DEF={
     /* ================= THE NORTH HARBOUR ================= */
     { /* the mole out from the islet, north and then east, the mouth left between it and the shore */
       box(-812,SEA-6,-560,-798,SEA+5,-380,HS); box(-812,SEA-6,-572,-650,SEA+5,-558,HS);
-      K.tower(-650,-565,9,9,13,HS,{solid:true});
+      K.tower(-650,-565,9,9,13,HS,{solid:true,from:SEA-6});
       /* the quay along the city's shore, and the cape's north face */
       for(let z=-560;z<-345;z+=4) box(K.sx(-600)-M,SEA-4,z,K.sx(-600),0.6,z+4,HS);
       for(let x=-735;x<-600;x+=4) box(x,SEA-4,K.sx(-342)-M,x+4,0.6,K.sx(-342),HS);
       api.mark('harbourNorth',-690,-460); api.mark('harbourMouth',-625,-575); }
     /* ================= THE SOUTH HARBOUR ================= */
     { box(-720,SEA-6,10,-706,SEA+4.5,170,HS); box(-720,SEA-6,170,-560,SEA+4.5,184,HS);
-      K.tower(-713,10,9,9,12,HS,{solid:true});
+      K.tower(-713,10,9,9,12,HS,{solid:true,from:SEA-6});
       api.mark('harbourSouth',-600,60); }
     yield;
     /* ================= HER WALLS ================= */
     { const W={m:HS,h:13,t:4,towers:45,tw:8,th:5};
-      K.wall([[C.x0,C.z0],[C.x1,C.z0],[C.x1,C.z1],[-480,C.z1],[-560,-20],[-600,-100]],Object.assign({},W,{gates:[[-380,C.z0,5,'gateNorth'],[C.x1,-150,5,'gateEast'],[-320,C.z1,5,'gateSouth']]}));
+      K.wall(LANDW,Object.assign({},W,{gates:[[-380,C.z0,5,'gateNorth'],[C.x1,-150,5,'gateEast'],[-320,C.z1,5,'gateSouth']]}));
       K.wall([[-600,-340],[-600,C.z0],[C.x0,C.z0]],Object.assign({},W,{h:11,gates:[[-600,-400,5,'gateHarbour']]}));
-      K.wall([[-735,-170],[-735,-300],[-690,-340],[-600,-340]],Object.assign({},W,{h:10,from:SEA-3}));
+      K.wall(SEAW,Object.assign({},W,{h:10,from:SEA-3}));
       api.mark('gateEastOut',C.x1+30,-150); }
     yield;
     /* ================= THE ACROPOLIS ================= */
@@ -72,7 +75,13 @@ const DEF={
     const SQ=DEF.square; api.top(SQ[0]-34,SQ[1]-28,SQ[0]+34,SQ[1]+28,HS); api.mark('square',SQ[0],SQ[1]); api.mark('market',SQ[0],SQ[1]);
     K.street([[-380,C.z0+6],[-380,SQ[1]-28]],8,HS); K.street([[SQ[0]+34,-150],[C.x1-6,-150]],8,HS); K.street([[SQ[0],SQ[1]+28],[SQ[0],C.z1-6]],8,HS);
     K.street([[-590,-220],[SQ[0]-34,-220]],7,HS);
-    const inCity=(x,z)=>x>C.x0+12&&x<C.x1-12&&z>C.z0+12&&z<C.z1-12&&!(z>-100&&x<-560+(z+100)*0.6)&&!(x<-590);
+    const RING=[...LANDW,...SEAW.slice(1)];
+    const inCity=(x,z)=>{ if(x<-590) return false; let c=false;
+      for(let i=0,j=RING.length-1;i<RING.length;j=i++){ const a=RING[i], b=RING[j];
+        if(((a[1]>z)!==(b[1]>z))&&(x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])) c=!c;
+        const dx=b[0]-a[0], dz=b[1]-a[1], t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));
+        if(Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t)<12) return false; }
+      return c; };
     const free=(x,z,m)=>{ m=m||0; if(!inCity(x,z)) return false;
       if(Math.hypot((x-ACR.x)/(ACR.rx+14+m),(z-ACR.z)/(ACR.rz+14+m))<1) return false;
       if(Math.abs(x+380)<6+m&&z<SQ[1]||Math.abs(z+150)<6+m&&x>SQ[0]||Math.abs(x-SQ[0])<6+m&&z>SQ[1]||Math.abs(z+220)<6+m&&x<SQ[0]) return false;
@@ -99,7 +108,7 @@ const DEF={
     /* (the strand south of the city kept for the purple dyers, and by the south harbour for the glass) */
     api.mark('dyeworks',-380,420); api.mark('glassworks',-470,220);
     for(let k=0;k<50;k++){ const x=-300+hsh(k,1)*700, z=160+hsh(k,2)*500; if(x>-200||z>360) K.tree(x,z,4+hsh(k,3)*2,'olive'); }
-    api.townGround([[C.x0,C.z0],[C.x1,C.z0],[C.x1,C.z1],[-480,C.z1],[-560,-20],[-600,-100],[-735,-170],[-735,-300],[-690,-340],[-600,-340]]);
+    api.townGround(RING);
   }
 };
 EARTH.ancient(DEF);

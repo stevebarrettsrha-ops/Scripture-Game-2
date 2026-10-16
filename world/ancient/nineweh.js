@@ -46,18 +46,18 @@ const DEF={
     K.wall([[Wn,N],[-256,N]],Object.assign({},W,{gates:[[-640,N,5,'gateSin']]}));
     K.wall([[256,N],[E,N]],Object.assign({},W,{gates:[[400,N,5,'gateAdad']]}));
     yield;
-    K.wall([[E,N],[E,S]],Object.assign({},W,{gates:[[E,700,5,'gateShamash'],[E,kz(E),20],[E,1750,5,'gateNinlil'],[E,2350,5,'gateHalzi']]}));
+    K.wall([[E,N],[E,S]],Object.assign({},W,{gates:[[E,700,5,'gateShamash'],[E,kz(E),24],[E,1750,5,'gateNinlil'],[E,2350,5,'gateHalzi']]}));
     yield;
     K.wall([[E,S],[Ws,S]],Object.assign({},W,{gates:[[200,S,5,'gateAshur'],[-350,S,5,'gateSouth']]}));
     K.wall([[Ws,S],[westAt(kz(-900)+30),kz(-900)+30]],Object.assign({},W,{gates:[[westAt(2150),2150,5,'gateQuay']]}));
     K.wall([[westAt(kz(-900)-30),kz(-900)-30],[Wn,N]],Object.assign({},W,{gates:[[westAt(900),900,5,'gateMashki']]}));
     for(const [x,z] of [[Wn,N],[E,N],[E,S],[Ws,S]]) K.tower(x,z,20,20,24,MB);
     /* where the Khosr comes through, towers either side of its water gate, and the stone of the sluice */
-    for(const s of [-1,1]){ K.tower(E,kz(E)+s*24,16,16,22,MB); const xw=westAt(kz(-900)), zw=kz(-900); K.tower(xw,zw+s*36,16,16,22,MB); }
+    for(const s of [-1,1]){ K.tower(E,kz(E)+s*32,16,16,22,MB); const xw=westAt(kz(-900)), zw=kz(-900); K.tower(xw,zw+s*40,16,16,22,MB); }
     box(E-8,-2.2,kz(E)-18,E+8,-1.2,kz(E)+18,LS);
     /* the stone footing along the foot of every wall, its face toward the field */
     for(let x=Wn;x<E;x+=3) if(Math.abs(x)>256) box(x,-M,N-8.6,x+3,1.8,N-7.4,LS);
-    for(let z=N;z<S;z+=3) box(E+7.4,-M,z,E+8.6,1.8,z+3,LS);
+    for(let z=N;z<S;z+=3) if(Math.abs(z+1.5-kz(E))>24) box(E+7.4,-M,z,E+8.6,1.8,z+3,LS);
     yield;
 
     /* ================= KUYUNJIK, AND THE PALACES ON IT ================= */
@@ -130,7 +130,8 @@ const DEF={
     yield;
     /* the gardens of the king, their trees in rows, and the palms along the river */
     for(let k=0;k<120;k++){ const x=-150+hsh(k,3)*650, z=1450+hsh(k,5)*1100; if(free(x,z,4)) K.tree(x,z,4+hsh(k,7)*3,k%3?'olive':null); }
-    for(let k=0;k<110;k++){ const z=-900+hsh(k,9)*4200, x=TX+(hsh(k,11)<0.5?-1:1)*(100+hsh(k,13)*140); K.palm(x,z,8+hsh(k,15)*5); }
+    const tig=z=>{ const P=DEF.ground.waters[0].pts; for(let i=0;i+1<P.length;i++) if(z>=P[i][1]&&z<=P[i+1][1]) return P[i][0]+(P[i+1][0]-P[i][0])*(z-P[i][1])/(P[i+1][1]-P[i][1]); return TX; };
+    for(let k=0;k<110;k++){ const z=-900+hsh(k,9)*4200, x=tig(z)+(hsh(k,11)<0.5?-1:1)*(100+hsh(k,13)*140); K.palm(x,z,8+hsh(k,15)*5); }
     api.townGround([[Wn,N],[E,N],[E,S],[Ws,S]]);
     api.mark('tigris',TX+100,900); api.mark('khosr',-100,kz(-100)-24); api.mark('gateNergal',0,30);
   }

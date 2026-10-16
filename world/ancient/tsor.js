@@ -31,13 +31,15 @@ const DEF={
     const inIsle=(x,z)=>{ let c=false; for(let i=0,j=ISLE.length-1;i<ISLE.length;j=i++){ const a=ISLE[i], b=ISLE[j];
       if(((a[1]>z)!==(b[1]>z))&&(x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])) c=!c; } return c; };
     /* ================= HER WALLS OUT OF THE SEA ================= */
-    { const cx=-40, cz=10, ring=ISLE.map(([x,z])=>{ const d=Math.hypot(x-cx,z-cz); return [x-(x-cx)/d*3.5,z-(z-cz)/d*3.5]; });
+    { const cx=-40, cz=10, ring=ISLE.map(([x,z])=>{ const d=Math.hypot(x-cx,z-cz); return [x-(x-cx)/d*8,z-(z-cz)/d*8]; });
       ring.push(ring[0]);
       /* (the east wall, toward the land and the mole, the highest: Arrian has it a hundred and fifty feet) */
-      const east=ring.slice(4,8), rest=[...ring.slice(7),...ring.slice(1,5)];
+      /* (on the north the wall stops at the quays of the Sidonian harbour, the moles closing it) */
+      const east=ring.slice(4,8), rest=[...ring.slice(7),[-42,-385]], rest2=[[171,-385],ring[4]];
       K.wall(east,{m:HS,h:24,t:5,towers:50,tw:10,th:6,gates:[[242,-130,6,'gateMole']]});
       yield;
-      K.wall(rest,{m:HS,h:16,t:4.5,towers:55,tw:9,th:5,gates:[[-40,425,5,'gateSouth'],[-330,0,4,'gateWest']]});
+      K.wall(rest,{m:HS,h:16,t:4.5,towers:55,tw:9,th:5,gates:[[-40,416,5,'gateSouth'],[-330,0,4,'gateWest']]});
+      K.wall(rest2,{m:HS,h:16,t:4.5});
       api.mark('wallEast',260,0); }
     yield;
     /* ================= THE SIDONIAN HARBOUR ================= */
@@ -47,14 +49,14 @@ const DEF={
       /* its two moles out into the sea, the mouth between them */
       box(x0-2*M,SEA-6,-500,x0+4,SEA+5,-380,HS); box(x1-4,SEA-6,-500,x1+2*M,SEA+5,-380,HS);
       box(x0,SEA-6,-500,x0+70,SEA+5,-488,HS); box(x1-70,SEA-6,-500,x1,SEA+5,-488,HS);
-      K.tower(x0+2,-494,9,9,14,HS,{solid:true}); K.tower(x1-2,-494,9,9,14,HS,{solid:true});
+      K.tower(x0+2,-494,9,9,14,HS,{solid:true,from:SEA-6}); K.tower(x1-2,-494,9,9,14,HS,{solid:true,from:SEA-6});
       /* the ship-sheds along its west quay, their roofs on piers, their slips down into the water */
       for(let z=z1-12;z>-390;z-=10){ box(x0-42,0,z-0.6,x0-4,6,z+0.6,HS); box(x0-42,6,z-5,x0-4,6.9,z+5,'roof-tile'); for(let k=0;k<4;k++) box(x0-4-k*2,-0.8-k*0.7,z-4,x0-2-k*2,-k*0.7,z+4,HS); }
       api.mark('harbourSidonian',(x0+x1)/2,z1+12); api.mark('harbourMouth',(x0+x1)/2,-520); }
     /* ================= THE EGYPTIAN HARBOUR ================= */
     { /* its breakwaters off the south shore, the basin between them and the island */
       box(-260,SEA-7,560,40,SEA+4.5,574,HS); box(-272,SEA-7,430,-258,SEA+4.5,574,HS); box(150,SEA-7,520,164,SEA+4.5,560,HS);
-      K.tower(40,567,10,10,12,HS,{solid:true}); K.tower(157,520,10,10,12,HS,{solid:true});
+      K.tower(40,567,10,10,12,HS,{solid:true,from:SEA-7}); K.tower(157,520,10,10,12,HS,{solid:true,from:SEA-7});
       for(let x=-200;x<120;x+=4) box(x,SEA-4,K.sx(432),x+4,0.6,K.sx(432)+2*M,HS);           /* its quay along the island */
       api.mark('harbourEgyptian',-60,500); }
     /* ================= THE MOLE AND ITS ROAD ================= */
@@ -109,11 +111,11 @@ const DEF={
 
     /* ================= USHU ON THE LAND, AND THE STRAND OF THE DYERS ================= */
     K.street([[420,-135],[560,-135]],8,'path');
-    K.quarter(440,-420,700,-170,24,(x,z)=>!(Math.abs(z+135)<10)&&x>430,{w:7,wv:3});
+    K.quarter(440,-420,700,-170,24,(x,z)=>!(Math.abs(z+135)<10)&&x>430&&K.g(x,z)>-2.5&&K.g(x+8,z+8)>-2.5&&K.g(x-8,z-8)>-2.5,{w:7,wv:3});
     api.mark('ushu',560,-300);
     /* (the strand south of the mole is kept for the dyers' vats and the mounds of their shells) */
-    api.mark('dyeworks',470,120); api.mark('dyeStrand',440,250);
-    for(let k=0;k<40;k++){ const x=480+hsh(k,1)*300, z=-700+hsh(k,2)*500; if(!(Math.abs(z+135)<14)) K.palm(x,z,7+hsh(k,3)*4); }
+    api.mark('dyeworks',470,120); api.mark('dyeStrand',500,200);
+    for(let k=0;k<40;k++){ const x=480+hsh(k,1)*300, z=-700+hsh(k,2)*500; if(!(Math.abs(z+135)<14)&&K.g(x,z)>-2.5) K.palm(x,z,7+hsh(k,3)*4); }
     api.townGround(ISLE);
   }
 };
