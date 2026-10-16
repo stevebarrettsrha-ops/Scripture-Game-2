@@ -230,7 +230,7 @@ const FILES=[
   'countries/s-sudan.js',
   'cities/tsor.js',
   'cities/yapho.js',
-  'cities/no-amon.js',
+  'cities/alexandria.js',
   'cities/korinthos.js',
   'cities/ostia.js',
   'cities/tarshish.js',
@@ -257,6 +257,18 @@ const FILES=[
   'world/yahrushalayim-true.js',
   'world/wonders-true.js',
   'world/cities-true.js',
+  /* the cities of the ancients, each built as herself at her own place (ROADMAP Phase D4): the */
+  /* mason's kit first (it needs the wonders' own), then one file to a city */
+  'world/ancient/kit.js',
+  'world/ancient/babel.js',
+  'world/ancient/nineweh.js',
+  'world/ancient/ur.js',
+  'world/ancient/noph.js',
+  'world/ancient/no-amon.js',
+  'world/ancient/tsor.js',
+  'world/ancient/tsidon.js',
+  'world/ancient/dammeseq.js',
+  'world/ancient/rome.js',
   /* the authored places (Phase 8) — AFTER landmarks, because a place names
      the landmark it stands in and the list must already hold it */
   'world/places.js',

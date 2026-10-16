@@ -2786,7 +2786,7 @@ function ravineKeepOff(){
   for(const L of LANDMARKS){ const w=llToWorld(L.lat,L.lon); a.push([w[0],w[1],L.kind==='range'?1100:420]); }
   /* the towns — measured to the whole cut, not only to its lip — and the
      city of the great king and the traveller's own home, which are no town */
-  for(let i=0;i<SITES.length;i++){ const st=SITES[i]; if(st) a.push([st.x,st.z,cityFor(i)?760:560]); }
+  for(let i=0;i<SITES.length;i++){ const st=SITES[i]; if(st) a.push([st.x,st.z,st.anc?st.anc.reachU+600:cityFor(i)?760:560]); }
   try{ if(yahruPos) a.push([yahruPos.x,yahruPos.z,1000]); if(homePos) a.push([homePos.x,homePos.z,600]); }catch(e){}
   if(window.WATERFALL) _ravKeep=a;     /* not kept until the falls are known */
   return a;
@@ -2894,14 +2894,78 @@ function settleProfile(st){
   P.farm=TRUE_EARTH?FARM_M[sz]*U_PER_M_WORLD:0;
   return st._prof=P; }
 function settleProfile0(st){
+  /* (a city of the ancients levels her own ground, and her streets reach as far as she does) */
+  if(st.anc){ const R=st.anc.reachU; return {kind:'city',flat:0,skirt:0,core:R,ring:R+B*50,edge:R+B*66}; }
   let cfg=null; try{ cfg=cityFor(st.i); }catch(e){}
   if(!cfg) return Object.assign({kind:'village'},SETTLED_R.village);
   /* a city's ground is as broad as its houses: half the side of its square of lots, and more */
   const half=(Math.ceil(Math.sqrt(cityHomesOf(cfg)*1.6)/2)+1.5)*B*10;
   return {kind:'city',flat:half+B*4,skirt:half+B*22,core:half+B*14,ring:half+B*50,edge:half+B*66};
 }
+/* ================= THE CITIES OF THE ANCIENTS, EACH AS ITSELF (ROADMAP Phase D4) =================
+   Babel on the Furat, Ninewĕh on the Ḥiddeqel, Ur of the Kasdim, Noph and No-Amon on the Nile, Tsor in the
+   sea and Tsidon on her cape, Dammeseq on the Barada and Rome on her hills: each is written in her own file
+   under world/ancient/ (EARTH.ancientList), as the city of the great king is written in hers, and raised at
+   her own latitude and longitude. A city is two things here.
+   Her GROUND is the land as her people made it and as the earth's heights cannot tell it, sampled every
+   sixteen kilometres in the plains of Shinʽar and the valley of the Nile: the plain levelled for her streets,
+   her tells and her hills heaped up, her river led through her, her harbours cut and her island won from the
+   sea. That is a rule of the earth like the rest of this file, read wherever the land is read and costing
+   nothing to keep (ancientGround, here). Her STONE is a set (buildAncient, beside setBuilder), laid when the
+   traveller comes within sight of her and taken up when he has gone, and her people with it. */
+const ANC=[];
+function ancPolyDist(P,x,z){ let best=1e18;
+  for(let i=0;i+1<P.length;i++){ const ax=P[i][0], az=P[i][1], dx=P[i+1][0]-ax, dz=P[i+1][1]-az, L2=dx*dx+dz*dz||1,
+      t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/L2)); best=Math.min(best,Math.hypot(x-ax-dx*t,z-az-dz*t)); }
+  return best; }
+/* the reach of her ground in the world, from what it names (metres about her anchor) */
+function ancientBox(A){ const g=A.def.ground||{}, U=U_PER_M_WORLD; let x0=-50,x1=50,z0=-50,z1=50;
+  const take=(x,z,r)=>{ x0=Math.min(x0,x-r); x1=Math.max(x1,x+r); z0=Math.min(z0,z-r); z1=Math.max(z1,z+r); };
+  for(const L of g.level||[]) take(L.x,L.z,Math.max(L.rx,L.rz)+(L.blend||200));
+  for(const H of g.hills||[]) take(H[0],H[1],Math.max(H[3],H[4])+(H[7]||0));
+  for(const W of g.waters||[]) for(const p of W.pts) take(p[0],p[1],W.w);
+  for(const P of [...(g.land||[]),...(g.sea||[]),...(g.cut||[])]) for(const p of (P.pts||P)) take(p[0],p[1],5);
+  for(const Q of g.pools||[]){ take(Q[0],Q[1],5); take(Q[2],Q[3],5); }
+  A.bx0=A.x+x0*U; A.bx1=A.x+x1*U; A.bz0=A.z+z0*U; A.bz1=A.z+z1*U; }
+function ancientGround(c,ix,iz){
+  if(!ANC.length) return c;
+  const x=(ix+.5)*B, z=(iz+.5)*B;
+  for(const A of ANC){ if(x<A.bx0||x>A.bx1||z<A.bz0||z>A.bz1) continue;
+    const g=A.def.ground||{}, lx=(x-A.x)/U_PER_M_WORLD, lz=(z-A.z)/U_PER_M_WORLD;
+    /* the sea she had not yet given up; the island and the moles she won from it; the harbours cut back */
+    if(c&&g.sea&&g.sea.some(P=>inPoly(lx,lz,P))) c=null;
+    /* (a land is its points, or {pts, y} for ground won at y metres over her base; an island in her river stays dry) */
+    const LP=g.land&&g.land.find(P=>inPoly(lx,lz,P.pts||P)), made=!!LP;
+    if(made){ const h=A.hB+Math.round((LP.y||0)/M_PER_BLK);
+      if(!c) c={h,kind:'sand',tree:0,ci:A.ci,dk:false}; else { c.h=h; if(c.spans) c.spans=clipSpans(c.spans,c.h); } }
+    if(c&&g.cut&&g.cut.some(P=>inPoly(lx,lz,P))) c=null;
+    if(!c||c.kind==='wall'||c.kind==='floe') return c;
+    /* the plain levelled for her, and eased into the land about (`y` metres over her base, `kind` its ground) */
+    for(const L of g.level||[]){ const q=Math.hypot((lx-L.x)/L.rx,(lz-L.z)/L.rz), out=(q-1)*Math.min(L.rx,L.rz), bl=L.blend||200;
+      if(out>=bl) continue;
+      const want=A.hB+Math.round((L.y||0)/M_PER_BLK), t=out<=0?0:out/bl, h=Math.max(1,Math.round(want+(c.h-want)*t*t*(3-2*t)));
+      if(h<c.h&&c.spans) c.spans=clipSpans(c.spans,h);
+      c.h=h; if(L.kind&&out<=0){ c.kind=L.kind; c.tree=0; } }
+    /* her tells and her hills: [x, z, metres over her base, rx, rz, the fall (part of the radius), kind]; and a
+       rampart, a ring of earth along such an oval, `ring` metres broad at its foot: [..., kind, ring] */
+    if(g.hills){ let top=-1, kind=null;
+      for(const H of g.hills){ const q=Math.hypot((lx-H[0])/H[3],(lz-H[1])/H[4]);
+        let f; if(H[7]){ const d=Math.abs(q-1)*Math.min(H[3],H[4]); if(d>=H[7]/2) continue; f=Math.min(1,(1-d/(H[7]/2))/(H[5]||0.5)); }
+        else { if(q>=1) continue; f=Math.min(1,(1-q)/(H[5]||0.5)); }
+        const m=H[2]*f*f*(3-2*f); if(m>top){ top=m; kind=H[6]||null; } }
+      if(top>0){ const h=A.hB+Math.round(top/M_PER_BLK); if(h>c.h){ c.h=h; c.tree=0; if(kind) c.kind=kind; } } }
+    /* her rivers, canals and moats: a line of water `w` wide, its face `level` metres over her base (never above
+       the bank it runs in), `depth` deep; and her pools and basins [x0,z0,x1,z1,level,depth] */
+    let wl=null;
+    if(!made) for(const W of g.waters||[]) if(ancPolyDist(W.pts,lx,lz)<=W.w/2){ wl=W; break; }
+    if(!wl&&!made) for(const Q of g.pools||[]) if(lx>=Math.min(Q[0],Q[2])&&lx<=Math.max(Q[0],Q[2])&&lz>=Math.min(Q[1],Q[3])&&lz<=Math.max(Q[1],Q[3])){ wl={level:Q[4],depth:Q[5]}; break; }
+    if(wl){ const lake=wl.sea?0:Math.min(A.hB+Math.round((wl.level===undefined?-1.5:wl.level)/M_PER_BLK),c.h-1);
+      c.lake=lake; c.h=lake-Math.max(1,Math.round((wl.depth||3)/M_PER_BLK)); c.kind='sand'; c.tree=0; c.stump=0; c.cleared=2;
+      if(c.spans) c.spans=clipSpans(c.spans,c.h); }
+    return c; }
+  return c; }
 function cellCompute(ix,iz){
-  const c=cellRaw(ix,iz); if(!c) return null;
+  const c=ancientGround(cellRaw(ix,iz),ix,iz); if(!c) return null;
   if(SITES.length&&c.kind!=='wall'&&c.kind!=='floe'){
     const x=(ix+.5)*B, z=(iz+.5)*B, u=x/R_WORLD, v=z/R_WORLD;
     const near=siteGrid.get(siteKey(u,v));
@@ -3088,8 +3152,42 @@ function computeSites(){
     SITES[i]=Object.assign(at,{i,ci,town:t,cfg,name:t.n});
     siteGridAdd(SITES[i]);
   }
+  /* and the cities of the ancients, each as herself (Phase D4: world/ancient/); not in a story, which raises
+     its own Ninewĕh, Baḇel, Dammeseq and Rome as they stood in its own year */
+  if(TRUE_EARTH&&!window.__STORY_HOST) ancientSites();
   buildRoads();
 }
+/* ---- WHERE EACH CITY OF THE ANCIENTS STANDS ----
+   Her anchor is the work of the ancients she was built about, where one already stands (`at`: Etemenanki in
+   Baḇel, the house of Amun in No-Amon, the gate of Nergal in Ninewĕh, the tower of the moon in Ur), so the work
+   stands where her plan expects it; else her own latitude and longitude. Her base is the land's own height
+   there (or `base`, in metres over the sea). Her square (`square`, metres from the anchor) is the site of her
+   town: the well, the market and the gathering of her folk. A land's own great city of the same name (Tsor)
+   is her, and no second one is raised beside her. */
+function ancientSites(){
+  for(const def of (window.EARTH&&EARTH.ancientList)||[]){
+    const ci=COUNTRIES.findIndex(c=>c.n===def.land); if(ci<0||!def.plan) continue;
+    let ax, az;
+    if(def.at){ const li=LANDMARKS.findIndex(L=>L.n===def.at), s=li>=0?landmarkSite(li):null; if(s){ ax=s.x; az=s.z; } }
+    if(ax===undefined){ const p=llToWorld(def.lat,def.lon); ax=(Math.floor(p[0]/B)+.5)*B; az=(Math.floor(p[1]/B)+.5)*B; }
+    const c0=cellRaw(Math.floor(ax/B),Math.floor(az/B));
+    const hB=def.base!==undefined?Math.max(1,Math.round(def.base/M_PER_BLK)):Math.max(1,c0?c0.h:1);
+    const A={def,n:def.n,x:ax,z:az,hB,ci,api:null,groups:null,redo:false,err:null};
+    ancientBox(A); ANC.push(A);
+    const sq=def.square||[0,0], six=Math.floor((ax+sq[0]*U_PER_M_WORLD)/B), siz=Math.floor((az+sq[1]*U_PER_M_WORLD)/B);
+    const own=CITY_BY_COUNTRY[def.land]&&CITY_BY_COUNTRY[def.land].name===def.n, i=own?ci:SITES.length, old=SITES[i];
+    if(old) for(const a of siteGrid.values()){ const k=a.indexOf(old); if(k>=0) a.splice(k,1); }
+    const folk=def.folk||96;
+    SITES[i]={ix:six,iz:siz,x:(six+.5)*B,z:(siz+.5)*B,h0:hB,i,ci,name:def.n,town:{n:def.n,size:'city',land:def.land},
+      cfg:{country:def.land,name:def.n,houses:Math.ceil(folk/8),size:3,market:true,streets:true,wells:3,fishStall:!!def.coast},anc:A};
+    A.site=SITES[i]; A.reachU=(def.reach||1500)*U_PER_M_WORLD; A.trig=A.reachU+(def.seen||4000)*U_PER_M_WORLD;
+    siteGridAdd(SITES[i]);
+  }
+}
+/* her stone taken up again, with the houses she laid and the meshes of their lanes */
+function ancientDrop(A){
+  if(A.api){ A.api.drop(); for(const g of A.groups||[]) g.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
+  A.api=null; A.groups=null; A.redo=false; }
 const TOWNS=(window.EARTH&&EARTH.townList)||[], TOWN_USED=new Set();
 /* the dry ground nearest a town's own latitude and longitude */
 function townSpot(t){
@@ -5528,7 +5626,7 @@ function flFillRing(k,px,pz,kr,fine){
        cannot be seen out here, and filling the cell cache with far country
        would only thrash it for the ground underfoot */
     const ix=Math.floor(wx/B), iz=Math.floor(wz/B);
-    let cc=cellRaw(ix,iz);
+    let cc=ancientGround(cellRaw(ix,iz),ix,iz);         /* (a city of the ancients is her own ground, seen from afar) */
     /* (not on the true earth: its heights are the earth's own, smooth between the samples, and the
        tallest of a footprint there fills every valley — the Qiḏron came up level with the Mount) */
     if(cc&&cc.h>6&&span>1&&!TRUE_EARTH){
@@ -11577,7 +11675,7 @@ function placeScrolls(){
        into. A village's outermost works stop near 160 out; a city's near
        380. The scroll starts past them and walks outward, swinging off its
        bearing a little at a time until it finds level, open ground. */
-    const r0=cityFor(ci)?400:210, r1=r0+360;
+    const r0=st.anc?100:cityFor(ci)?400:210, r1=r0+360;   /* (in a city of the ancients, in her market square, which she keeps clear) */
     let x=NaN, z=NaN;
     outer:
     for(let r=r0;r<=r1;r+=16){
@@ -15048,7 +15146,7 @@ function* spawnVillage(i,exShell){
   const addRect=(x0,x1,z0,z1)=>{ rects.push({x0,x1,z0,z1}); };
   let cityHomes=null;
   if(cfg){
-    const ci=yield* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect);
+    const ci=yield* (site.anc?buildAncient:buildCity)(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect);   /* (a city of the ancients by her own plan) */
     cityHomes=ci.homes;
     /* a fenced pen for the beasts on the outskirts — on ground of its own */
     for(let tr=0;tr<10;tr++){ const a=rnd(130+tr*7)*6.28, rr=B*(18+(cfg.size||2)*4+tr);
@@ -15315,8 +15413,8 @@ function* spawnVillage(i,exShell){
   const g=new THREE.Group();
   for(const mat in G){ const gg=G[mat];
     g.add(bucketMesh(gg,MAT[mat])); yield; }
-  /* the doors — each house a swinging leaf, closed to begin */
-  for(const H of ex.houses){ if(!H.door) continue; const D2=H.door;
+  /* the doors — each house a swinging leaf, closed to begin (a city's lanes hung their own) */
+  for(const H of ex.houses){ if(!H.door||H.door.mesh) continue; const D2=H.door;
     const dm=new THREE.Mesh(new THREE.BoxGeometry(D2.w,D2.h,0.6),doorLeafMat);
     dm.geometry.translate(D2.w/2,D2.h/2,0);
     dm.position.set(D2.hx,D2.y,D2.hz); dm.rotation.y=D2.base;
@@ -16759,10 +16857,13 @@ function updateVillages(px,pz,dt,nightF,dayF){
     const sxp=s0?s0.x:c[0]*R_WORLD, szp=s0?s0.z:c[1]*R_WORLD;
     const d=Math.hypot(px-sxp, pz-szp);
     const has=activeVillages.has(i);
-    if(d<trigV&&!has){ activeVillages.set(i,{building:true});
+    /* (a city of the ancients is raised as soon as she could be seen, and taken up again for a new plan) */
+    const anc=s0&&s0.anc, tv=anc?Math.max(trigV,anc.trig):trigV;
+    if(d<tv&&!has){ activeVillages.set(i,{building:true});
       { const bx={}; villageBuilds.push({i,gen:spawnVillage(i,bx),ex:bx}); } }
-    else if(d>Math.max(2100,trigV+500)&&has){ const vv=activeVillages.get(i);
+    else if((d>Math.max(2100,tv+500)||(anc&&anc.redo))&&has){ const vv=activeVillages.get(i);
       if(vv.building) continue;                        /* let the build finish; torn down next pass */
+      if(anc) ancientDrop(anc);
       if(vv.deckKeys) for(const k of vv.deckKeys) deckMap.delete(k);
       if(vv.g){ scene.remove(vv.g);
         const sharedT=new Set(Object.values(TEX));
@@ -22450,6 +22551,51 @@ function buildYahruPlan(period){
   YAHRU_MARKS=api.marks; yahruStamp=api; yahruPeriod=period||'herodes';
   return api;
 }
+/* ---- THE STONE OF A CITY OF THE ANCIENTS (Phase D4) ----
+   Raised in the place of a town's generic plan (spawnVillage, which goes on to give her her well, her market,
+   her folk, her beasts and her country): her own plan is run as a set, a part to a frame — the plan yields
+   between its walls, its quarters and its temples — in one stamp group that is the town's and goes with it.
+   Of the houses she lays, `folk` are given households, spread through her lanes from the square outward. */
+function* buildAncient(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
+  const A=site.anc, def=A.def;
+  ancientDrop(A);                                         /* (a set left standing by a build that was cut short) */
+  const grp={cells:[]}, open=fn=>{ const was=_stampOn; _stampOn=grp; try{ return fn(); } finally{ _stampOn=was; } };
+  const api=open(()=>setBuilder(A.x,A.z,A.hB*B,{far:true}));
+  A.api=api; ex.stamps.push(grp); A.err=null;
+  const houses=[], X=x=>A.x+x*SET_S, Z=z=>A.z+z*SET_S;
+  /* what she lays is written down, so the town's own pens, stalls and farmsteads find ground of their own */
+  const box0=api.box; api.box=(x0,y0,z0,x1,y1,z1,col,o)=>{ box0(x0,y0,z0,x1,y1,z1,col,o);
+    if(col!=='air'&&Math.abs(y1-y0)>1.5) addRect(Math.min(X(x0),X(x1)),Math.max(X(x0),X(x1)),Math.min(Z(z0),Z(z1)),Math.max(Z(z0),Z(z1))); };
+  const q0=api.quarter; api.quarter=(list,o)=>{ const hs=q0(list,Object.assign({style:def.style},o||{}));
+    for(const H of hs){ houses.push(H); addRect(H.x0,H.x1,H.z0,H.z1); } return hs; };
+  try{ const it=def.plan(api,{year:STORY_YEAR});
+    if(it&&typeof it.next==='function') for(;;){ const r=open(()=>it.next()); if(r.done) break; yield; } }
+  catch(e){ A.err=String(e&&e.stack||e); console.warn('the city of '+def.n+' was left unfinished: '+A.err); }
+  open(()=>api.end());
+  A.groups=new Set(houses.map(H=>H.door&&H.door.mesh&&H.door.mesh.parent).filter(Boolean));
+  /* her well in the square, and her market about it */
+  stamped(ex,()=>emitWell(G,site.x,site.z,wy)); solids.push({x:site.x,z:site.z,r:B*1.7});
+  addRect(site.x-B*1.7,site.x+B*1.7,site.z-B*1.7,site.z+B*1.7);
+  for(let k=0;k<8&&ex.stalls.length<5;k++){ const a=k/8*Math.PI*2, sx=site.x+Math.cos(a)*B*6.5, sz=site.z+Math.sin(a)*B*6.5, c=landAtWorld(sx,sz);
+    if(!c||c.kind==='wall'||c.lake!==undefined||Math.abs(c.h*B-wy)>B||!rectFree(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4,0)) continue;
+    stamped(ex,()=>emitStall(G,sx,sz,c.h*B,ex.stalls.length===2&&def.coast?'fish':'market')); solids.push({x:sx,z:sz,r:B*1.6});
+    addRect(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4); ex.stalls.push({x:sx,z:sz}); }
+  yield;
+  /* her households: the houses nearest the square, and then every so many outward, so her lanes are lived in */
+  const dist=H=>Math.hypot((H.x0+H.x1)/2-site.x,(H.z0+H.z1)/2-site.z);
+  const near=houses.filter(H=>H.door).sort((a,b)=>dist(a)-dist(b)), want=Math.min(near.length,def.folk||96);
+  const pick=[]; const half=Math.floor(want/2), stride=Math.max(1,(near.length-half)/Math.max(1,want-half));
+  for(let k=0;k<half;k++) pick.push(near[k]);
+  for(let f=half;pick.length<want&&Math.floor(f)<near.length;f+=stride) pick.push(near[Math.floor(f)]);
+  const homes=[];
+  for(const H of pick){ const k=standaloneHouses.indexOf(H); if(k>=0) standaloneHouses.splice(k,1);
+    ex.houses.push(H);
+    const hx=(H.x0+H.x1)/2, hz=(H.z0+H.z1)/2, home={x:hx,z:hz,x0:H.x0,x1:H.x1,z0:H.z0,z1:H.z1,doorx:H.dx,doorz:H.dz,H};
+    if(H.dx!==undefined){ const ux=H.dx-hx, uz=H.dz-hz, dd=Math.hypot(ux,uz)||1, out=B*(1.2+(H.apron||0));
+      home.dx=H.dx; home.dz=H.dz; home.ox=H.dx+ux/dd*out; home.oz=H.dz+uz/dd*out; }
+    homes.push(home); }
+  return {homes};
+}
 window.__KIT={
   B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
   /* the point a scene holds the eye on, for the sun's map (renewed each frame; it lapses when not), and a new scene's things marked to cast at once */
@@ -22491,7 +22637,15 @@ window.__KIT={
   yahruAs:p=>{ if(yahruPos&&window.YAHRU_PLAN&&yahruPeriod!==p) buildYahruPlan(p); return YAHRU_MARKS; },
   /* the year the story is played in (A WONDER IN ITS OWN DAY); the voyage never sets one */
   setYear:setStoryYear, storyYear:()=>STORY_YEAR,
-  landmarks:()=>LANDMARKS.map((L,i)=>({i,n:L.n,kind:L.kind,lat:L.lat,lon:L.lon})), landmarkSiteOf:i=>landmarkSite(i)
+  landmarks:()=>LANDMARKS.map((L,i)=>({i,n:L.n,kind:L.kind,lat:L.lat,lon:L.lon})), landmarkSiteOf:i=>landmarkSite(i),
+  /* the cities of the ancients (Phase D4): where each stands and whether her stone is up; and her plan given
+     again (a tool's own hand, reading a plan as it is written) and raised anew, ground and all */
+  ancient:()=>ANC.map(A=>({n:A.n,x:A.x,z:A.z,y:A.hB*B,square:A.site?[A.site.x,A.site.z]:null,i:A.site?A.site.i:-1,built:!!A.api,err:A.err,marks:A.api?A.api.marks:null})),
+  ancientRedo:(n,def)=>{ const A=ANC.find(q=>q.n===n); if(!A) return false;
+    if(def) Object.assign(A.def,def); ancientBox(A); CELL_CACHE.clear(); editColumnsChanged();
+    for(let cx=Math.floor(A.bx0/CHW);cx<=Math.floor(A.bx1/CHW);cx++) for(let cz=Math.floor(A.bz0/CHW);cz<=Math.floor(A.bz1/CHW);cz++){
+      const k=cx+','+cz; if(chunks.has(k)) EDIT_DIRTY.add(k); }
+    A.redo=!!(A.site&&activeVillages.has(A.site.i)); return true; }
 };
 window.__WORLD={
   scene,camera,renderer,THREE,
