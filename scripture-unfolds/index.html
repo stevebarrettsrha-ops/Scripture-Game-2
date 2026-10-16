@@ -63,6 +63,32 @@
   .sc-item.sel .n{ color:#fff; text-shadow:0 0 12px rgba(212,175,55,.5); }
   #shelf-hint{ position:absolute; left:3vw; bottom:3.2vh; font-size:clamp(9px,1.4vmin,12px);
     letter-spacing:.2em; color:#8b8271; }
+  /* ---------------- THE SCROLL LIBRARY ----------------
+     The shelf holds every scroll now, Berĕshith to Ḥazon, and runs longer than a screen: the list
+     scrolls within its column, under the ages it is divided into. A greyed row is a scroll not yet
+     gathered, and is not shut — it can be chosen, and shows where the scroll is to be had. */
+  #shelf-col{ justify-content:flex-start; padding-top:14vh; padding-bottom:9vh; }
+  #shelf-list{ flex:1 1 auto; min-height:0; overflow-y:auto; padding-right:1vw; scrollbar-width:thin; scrollbar-color:#5a4a2a transparent; }
+  .sc-item{ padding:0.9vh 1.5vh; }
+  .sc-item.shut{ cursor:pointer; }
+  .sc-item.shut .r{ color:#8a7a62; }
+  .sc-item.verse .n{ color:#e8dcc0; }
+  .sc-pick.sel{ border-color:var(--gold); background:rgba(212,175,55,.1); }
+  .sc-whole{ display:block; width:100%; text-align:left; margin-bottom:1.4vh; padding:1.3vh 1.7vh; cursor:pointer;
+    font-family:inherit; color:var(--gold-lt); background:rgba(212,175,55,.08); border:1px solid rgba(212,175,55,.55); border-radius:3px; }
+  .sc-whole .n{ font-size:clamp(12px,2vmin,17px); letter-spacing:.24em; }
+  .sc-whole .r{ margin-top:.5vh; font-size:clamp(9px,1.4vmin,12px); font-style:italic; color:#b8a67a; }
+  .sc-whole.sel{ background:rgba(212,175,55,.2); border-color:var(--gold-lt); }
+  .sc-age{ margin:1.6vh 0 .5vh 1.7vh; font-size:clamp(9px,1.35vmin,11px); letter-spacing:.34em; color:var(--gold); opacity:.8; }
+  /* the cards of the whole Bible — the age, and where a missing scroll is to be had: the game's own
+     words, set apart from the captions (which are the Besorah's and nothing else) */
+  #sc-card{ position:fixed; z-index:24; left:12vw; right:12vw; top:calc(50% + 5vh); text-align:center;
+    pointer-events:none; opacity:0; transition:opacity 1s ease; color:#bfae86; letter-spacing:.14em;
+    font-size:clamp(11px,1.8vmin,16px); line-height:1.7; text-shadow:0 2px 12px rgba(0,0,0,.9); }
+  #sc-card.on{ opacity:1; }
+  #sc-bible{ position:fixed; z-index:25; left:2.4vw; top:3vh; opacity:0; transition:opacity .6s ease;
+    font-size:clamp(9px,1.3vmin,11px); letter-spacing:.24em; color:#8f8160; pointer-events:none; }
+  #sc-bible.on{ opacity:1; }
 
   /* ---------------- A SCENE ON THE SCREEN ---------------- */
   #sc-cine{ position:fixed; inset:0; z-index:20; pointer-events:none; opacity:0; transition:opacity .9s ease; }
@@ -133,7 +159,7 @@
     </svg>
     <div><div class="t">SCRIPTURE UNFOLDS</div><div class="s">the scrolls, scene by scene</div></div>
   </div>
-  <div id="shelf-hint">&#8593; &#8595; &mdash; choose &nbsp;&middot;&nbsp; ENTER &mdash; unroll the scroll &nbsp;&middot;&nbsp; ESC in a scene &mdash; leave it</div>
+  <div id="shelf-hint">&#8593; &#8595; &mdash; choose &nbsp;&middot;&nbsp; ENTER &mdash; unroll the scroll &nbsp;&middot;&nbsp; B &mdash; the whole Bible &nbsp;&middot;&nbsp; M &mdash; sound &nbsp;&middot;&nbsp; ESC in a scene &mdash; leave it</div>
 </div>
 
 <!-- ============ THE SCENE OVERLAY ============ -->
@@ -141,7 +167,9 @@
 <div id="sc-cap"><div id="sc-cap-t"></div><div id="sc-cap-r"></div></div>
 <div id="sc-fade"></div>
 <div id="sc-title"></div>
-<div id="sc-skip">ESC &mdash; leave the scene</div>
+<div id="sc-card"></div>
+<div id="sc-bible"></div>
+<div id="sc-skip">ESC &mdash; leave the scene &nbsp;&middot;&nbsp; SPACE &mdash; on to the next &nbsp;&middot;&nbsp; <span id="sc-sound">M &mdash; sound off</span></div>
 
 <script>
 /* THE HOST DRIVES THE OPENING. The shared engine boots the VOYAGE by itself;
@@ -283,6 +311,11 @@ window.__WORLDFILES.catch(function(){});
 <!-- THE SPINE OF THE SHELF, AND NOTHING MORE. Eight books is two megabytes;
      each one is fetched when it is taken down to be read. See js/besorah.js. -->
 <script src="scripture/index.js"></script>
+<!-- THE VOICES AND THE PIANO: Scripture-Game's own recordings of the verses the films read
+     (tools/import-voices.js), and its music.js, played through js/voices.js -->
+<script src="voices/bank.js" onerror="window.UNFOLD_VOICES={v:{}}"></script>
+<script src="js/voices.js"></script>
+<script src="js/music.js"></script>
 
 <script>
 /* ============ THE OPENING OF THIS GAME ============ */
@@ -322,6 +355,20 @@ window.__WORLDFILES.catch(function(){});
       'scrolls/06-yobelim.js',     /* YOḆELIM            the division of the days */
       'scrolls/07-chanok-eth.js',  /* ḤANOḴ HABASHIY     the courses of the lights */
       'scrolls/08-shamoth.js',     /* SHAMOTH            the going out */
+      /* ---- AND THE EVENTS, ONE FILM EACH, AT THEIR OWN PLACES (ROADMAP Phase F3) ---- */
+      'scrolls/09-flood.js',       /* BERĔSHITH 6–9      the flood, and the ark on Ararat */
+      'scrolls/10-moriyah.js',     /* BERĔSHITH 22       the binding on Moriyah */
+      'scrolls/11-bethel.js',      /* BERĔSHITH 28       the ladder at Bĕyth ʼĔl */
+      'scrolls/12-golyath.js',     /* 1 SHAMU'AL 17      the valley of Ĕlah */
+      'scrolls/13-karmel.js',      /* 1 MALAḴIM 18       the fire on Karmel */
+      'scrolls/14-danial.js',      /* DANI'AL 6          the den of lions */
+      'scrolls/15-birth.js',       /* LUKE 2             the birth at Bĕyth Leḥem */
+      'scrolls/16-immersion.js',   /* MATTITHYAHU 3      the immersion in the Yardĕn */
+      'scrolls/17-tomb.js',        /* MATTITHYAHU 28     the tomb that was found empty */
+      'scrolls/18-shabuoth.js',    /* ACTS 2             the Ruach at the Festival of Weeks */
+      'scrolls/19-dammeseq.js',    /* ACTS 9             the road to Damascus */
+      'scrolls/20-hazon.js',       /* ḤAZON 21–22        the renewed Yahrushalayim */
+      'js/library.js',             /* the Library, and the whole Bible played as one */
       'js/unfold.js'];
     (function next(k){
       if(k>=files.length) return;

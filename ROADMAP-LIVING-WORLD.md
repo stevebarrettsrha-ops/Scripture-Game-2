@@ -181,6 +181,12 @@ There are two real limits:
   - With 60–90 events at 1.5–3 minutes each, the whole film runs about 2.5–4 hours.
 - **F6. Checked words.** Every caption is checked against the Besorah by `tools/extract-besorah.js --check`.
 
+**Where Phase F stands.** Begun in SCRIPTURE UNFOLDS:
+- **F5 is in.** The shelf is the Scroll Library: every scroll of the voyage, Berĕshith to Ḥazon, under its age, each opened by its own scrolls; a missing one says where it lies, or who gives it (a `givenBy` in the scroll list is read). PLAY THE WHOLE BIBLE (B) plays every gathered scroll back to back with a card for each age, the scroll's own verse over its land where it has no film yet, and a gap card for each missing one.
+- **F1/F2 in part.** Scripture-Game's recordings are brought over by `tools/import-voices.js` for the verses the films read (144 clips, 2.5 MB; 108 of 257 captions voiced — its texts often join or part verses differently, and those are not voiced), and a caption is held while its voice reads. Its `music.js` plays under every film. The New Testament has no recordings and is read by caption alone.
+- **F3 in part.** Twelve new films, each at its true place: the flood, Moriyah, Bĕyth ʼĔl, the valley of Ĕlah, Karmel, the den of lions, the birth, the immersion, the empty tomb, the Festival of Weeks, the road to Damascus and Ḥazon. The stage now has players, things and signs, and keeps the face rule itself (`STAGE.faceRule`, asked on every frame by `tools/unfoldshots.js`).
+- Still to come: films for the scrolls that have only their verse (Baḇel, Aḇram, Seḏom, Yosĕph, the sea, Neḇo, Yahriḥo, the House, Yonah, Estĕr), the rest of the 60–90 events, recorded New Testament voices, and the scrolls given by the townsfolk (Phase B).
+
 ### Phase T — the true measure of the earth (asked in Round 137, before D–F)
 
 The traveller asked: "Make the land way bigger so that everything can fit, also make the whole world

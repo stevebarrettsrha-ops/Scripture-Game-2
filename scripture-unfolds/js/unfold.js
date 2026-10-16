@@ -24,6 +24,7 @@
     W.state.mode='boat'; W.state.boat.speed=0;
     W.state.simHours=9.5;
     W.updateChunks(a.x,a.z,9999);
+    STORY.here(a);                 /* (the films staged here need not lay it again) */
     W.setRunning(true);            /* the sea moves, the light lives, the world breathes */
     return a;
   }
@@ -85,54 +86,59 @@
     return out;
   }
 
-  /* ---------------- THE SHELF ---------------- */
+  /* ---------------- THE LIBRARY ----------------
+     THE SHELF WAS A LIST OF FILMS; IT IS THE SCROLL LIBRARY NOW (ROADMAP Phase F5). Every scroll
+     of the voyage stands in it, in the Besorah's order from Berĕshith to Ḥazon, under the age it
+     belongs to (js/library.js) — the ones gathered can be played, and the ones not gathered are
+     SHOWN, greyed, and say where the scroll lies or who will give it, so a man can see what he has
+     not got yet and knows what to go and do.
+
+     AN ENTRY IS OPEN WHEN EVERY SCROLL IT IS FILED UNDER HAS BEEN TAKEN UP, or when there is no
+     voyage to ask. It was the BOOK once (taking any scroll of Berĕshith opened every film of
+     Berĕshith); now that the events have scrolls of their own — the flood on Ararat, Moriyah,
+     Bĕyth ʼĔl — each is opened by its own, and the garden still by both the scrolls it reads. */
   let sel=0;
-  function items(){ return Array.prototype.slice.call(D.querySelectorAll('.sc-item')); }
-  function paint(){ items().forEach((b,i)=>b.classList.toggle('sel',i===sel)); }
+  function items(){ return Array.prototype.slice.call(D.querySelectorAll('#shelf .sc-pick')); }
+  function paint(){ items().forEach((b,i)=>b.classList.toggle('sel',i===sel));
+    const it=items()[sel]; if(it&&it.scrollIntoView) try{ it.scrollIntoView({block:'nearest'}); }catch(e){} }
+  function taken(){ const log=voyageLog(); return log&&log.sr?new Set(log.sr):null; }
   function buildShelf(){
     const list=$('shelf-list');
     list.innerHTML='';
-    const found=foundBooks();          /* null when there is no voyage at all */
-    for(const s of STORY.list()){
+    const got=taken();                  /* null when there is no voyage at all */
+    /* PLAY THE WHOLE BIBLE — every gathered scroll back to back, in order */
+    const all=D.createElement('button'); all.className='sc-pick sc-whole';
+    const ents=LIBRARY.entries(), st=ents.map(e=>LIBRARY.state(e,got)), nOpen=st.filter(s=>s.open).length;
+    all.innerHTML='<div class="n">&#9654; PLAY THE WHOLE BIBLE</div><div class="r">'+nOpen+' of '+ents.length+' scrolls gathered &middot; Berĕshith to Ḥazon</div>';
+    all.onclick=()=>playBible();
+    all.onmouseover=()=>{ sel=items().indexOf(all); paint(); };
+    list.appendChild(all);
+    let age=null;
+    ents.forEach((e,i)=>{
+      const s=st[i];
+      if(e.age!==age){ age=e.age; const h=D.createElement('div'); h.className='sc-age'; h.textContent=LIBRARY.AGES[age]; list.appendChild(h); }
       const b=D.createElement('button');
-      /* A PASSAGE IS OPEN WHEN EVERY SCROLL IT READS HAS BEEN TAKEN UP, or
-         when there is no voyage to ask. What is shut is SHOWN and greyed and
-         NAMES WHAT IS MISSING — the same rule the works page keeps: a man
-         should be able to see what he has not got yet, so he knows what to go
-         and do.
-
-         EVERY SCROLL IT READS, not the one it is filed under. This asked
-         about `s.book` alone, and the garden is filed under BERĔSHITH and
-         spends its last minute in ADAM AND HAWWAH 1 — so taking up the scroll
-         of the beginning opened a passage half of which was still buried in a
-         cave in the Zagros, and finding that cave opened nothing at all. The
-         books are read off the caption track (STORY.booksOf), so a film can
-         never come apart from the scrolls it quotes. */
-      const need=STORY.booksOf(s);
-      const miss=found?need.filter(id=>!found.has(id)&&!found.has(norm(id))):[];
-      const open=!found||!miss.length;
-      b.className='sc-item'+(open?'':' shut');
-      const heb=id=>{ const k=BESORAH.name?BESORAH.name(id):null; return k?k.hebrew:id; };
+      b.className='sc-item sc-pick'+(s.open?'':' shut')+(s.film?'':' verse');
+      b.dataset.entry=e.scrolls.join(',');
+      const sc=s.scroll, ref=sc&&sc.verse?sc.verse.ref:'';
       let row;
-      if(!open) row='still in the earth: '+miss.map(heb).join(' &middot; ');
-      else if(need.length===1){ const k=BESORAH.name?BESORAH.name(need[0]):null;
-        row=k?k.hebrew+' &mdash; '+k.english:''; }
-      else row=need.map(heb).join(' &middot; ');
-      b.innerHTML='<div class="n">'+s.name+'</div><div class="r">'+row+'</div>';
-      if(open){
-        b.onclick=()=>openScroll(s.id);
-        b.onmouseover=()=>{ sel=items().indexOf(b); paint(); };
-      }
+      if(!s.open) row='not yet gathered &mdash; '+s.where.map(x=>x.replace(/^[^:]*: /,'')).join(' &middot; ');
+      else if(s.film) row=(ref?ref+' &middot; ':'')+'a film';
+      else row=(ref?ref+' &middot; ':'')+'the verse alone &mdash; no film yet';
+      b.innerHTML='<div class="n">'+s.title+'</div><div class="r">'+row+'</div>';
+      b.onclick=()=>openEntry(e,s);
+      b.onmouseover=()=>{ sel=items().indexOf(b); paint(); };
       list.appendChild(b);
-    }
-    paint();
+    });
+    sel=Math.min(sel,items().length-1); paint();
   }
-  /* ---- THE SHELF STANDS OVER THE LIVING WORLD ----
+  /* ---- THE LIBRARY STANDS OVER THE LIVING WORLD ----
      With no scene running the engine's own camera takes back over, and it
      sits over the traveller's shoulder — which, with him stood on the shore
      the scenes are staged at, put the eye inside the ship's rigging. The
      shelf gets a long slow orbit of its own instead: the finished world,
-     turning quietly behind the scrolls. */
+     turning quietly behind the scrolls. (After a film played far off, the
+     traveller is stood back on that shore first, and the ground laid there.) */
   const IDLE=[
     { t:  0, dark:0, light:1, sky:0x9fc5e8, sun:1, moon:1, stars:1, firm:0.08,
       land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1, ship:0, man:0,
@@ -140,8 +146,10 @@
     { t:600, ca:1.0, cd:300, cy:110 },
   ];
   function showShelf(){
-    $('shelf').style.display='block'; sel=0; paint();
-    STAGE.play(IDLE, STORY.anchorFor('coast'), ()=>showShelf());   /* and round again */
+    $('shelf').style.display='block'; buildShelf();
+    const a=STORY.anchorFor('coast'); STORY.standAt(a);
+    if(window.VOICES) VOICES.mood('eden');
+    STAGE.play(IDLE, a, ()=>showShelf());   /* and round again */
   }
   function hideShelf(){ $('shelf').style.display='none'; }
 
@@ -151,15 +159,32 @@
     hideShelf();
     Promise.resolve(STORY.play(id)).then(function(ok){ if(!ok) showShelf(); });
   }
+  /* an entry of the Library: its film, or its verse over its own land, or — not gathered — its
+     gap card, which says where it is to be had */
+  function openEntry(e,s){
+    if(s.open&&s.film){ openScroll(s.film.id); return; }
+    hideShelf();
+    const item={kind:s.open?'verse':'gap',e,s};
+    Promise.resolve(STORY.playScene(LIBRARY.card(item))).then(ok=>{ if(!ok) showShelf(); });
+  }
+  function playBible(){
+    hideShelf();
+    LIBRARY.start(taken(),()=>showShelf());
+  }
 
   /* the voyage's log, and what it has opened — for the acceptance suite */
-  window.__UNFOLD={ log:voyageLog, found:foundBooks, rebuild:buildShelf };
+  window.__UNFOLD={ log:voyageLog, found:foundBooks, taken, rebuild:buildShelf, bible:playBible,
+    library:()=>{ const got=taken(); return LIBRARY.entries().map(e=>{ const s=LIBRARY.state(e,got);
+      return {scrolls:e.scrolls, age:e.age, film:s.film?s.film.id:null, open:s.open, title:s.title, where:s.where}; }); } };
 
-  /* when a scroll runs out, or is left, the shelf comes back */
-  window.__STORY_DONE=function(){ showShelf(); };
-  window.__STORY_SKIPPED=function(){ showShelf(); };
+  /* when a scroll runs out, or is left, the Library comes back — or, in the whole Bible, the
+     next scroll comes on (ESC leaves the whole Bible; SPACE or → passes on to the next) */
+  window.__STORY_DONE=function(){ if(LIBRARY.running()){ LIBRARY.next(); return; } showShelf(); };
+  window.__STORY_SKIPPED=function(s,code){
+    if(LIBRARY.running()){ if(code==='Escape') LIBRARY.stop(); else LIBRARY.next(); return; }
+    showShelf(); };
 
-  /* the arrows and ENTER work the shelf; ESC inside a scene is the story's own */
+  /* the arrows and ENTER work the Library; B plays the whole Bible; ESC inside a scene is the story's own */
   addEventListener('keydown',function(e){
     if(STORY.playing()) return;                 /* a running scene owns the keys */
     if($('shelf').style.display!=='block') return;
@@ -167,6 +192,8 @@
     if(e.key==='ArrowDown'){ sel=(sel+1)%it.length; paint(); e.preventDefault(); }
     else if(e.key==='ArrowUp'){ sel=(sel-1+it.length)%it.length; paint(); e.preventDefault(); }
     else if(e.key==='Enter'||e.key===' '){ it[Math.min(sel,it.length-1)].click(); e.preventDefault(); }
+    else if(e.key==='b'||e.key==='B'){ playBible(); e.preventDefault(); }
+    else if((e.key==='m'||e.key==='M')&&window.VOICES){ VOICES.toggle(); e.preventDefault(); }
   });
 
   /* ---------------- THE OPENING ITSELF ---------------- */
