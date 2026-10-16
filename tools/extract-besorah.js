@@ -56,6 +56,15 @@ function load(){
 let WORDS=null, IDS=null;
 function shown(t){ return plain(WORDS&&WORDS.repair?WORDS.repair(t):t); }
 
+/* ---- A STRAY MARK, MENDED ONLY WHERE IT IS KNOWN TO STAND ----
+   The page's footnote letter has fallen into one verse and is glued to the word after it
+   ("Ludia,fa seller of purple"), and a reader would hear "fa". A rule for every verse
+   would sooner or later touch a true word, so each mend is written out whole and kept to
+   the one verse it names: the mark comes out and not a letter else. A new edition that
+   has put it right finds nothing to mend, and the mend does nothing. */
+const MEND={ 'acts 16:14':[['Ludia,fa seller','Ludia, a seller']] };
+function mend(id,ch,v,t){ for(const [a,b] of MEND[id+' '+ch+':'+v]||[]) t=t.split(a).join(b); return t; }
+
 /* the site's own markup for the Names, and nothing else, taken off */
 function plain(t){
   return String(t)
@@ -104,24 +113,24 @@ function resolve(TEXT,ref){
   let want=norm(m[1]); if(ALIAS[want]) want=ALIAS[want];
   if(IDS&&IDS.resolve){ const r=IDS.resolve(want); if(r) want=norm(r); }   /* the Besorah's own renames */
   const ch=m[2], v0=parseInt(m[3],10), v1=m[4]?parseInt(m[4],10):null;
-  let book=null;
+  let book=null, id=null;
   for(const k of Object.keys(TEXT)){ const b=TEXT[k];
-    if(norm(k)===want||norm(b.hebrew||'')===want||norm(b.english||'')===want){ book=b; break; } }
+    if(norm(k)===want||norm(b.hebrew||'')===want||norm(b.english||'')===want){ book=b; id=k; break; } }
   if(!book) return {err:'no such book: '+m[1]+'   (run --books)'};
   const c=book.chapters&&book.chapters[ch];
   if(!c) return {err:'no chapter '+ch+' in '+(book.hebrew||book.english)};
-  const parts=[];
+  const parts=[], vs=[];
   for(let v=v0;v<=(v1===null?v0:v1);v++){
     const row=(c.verses||[]).find(q=>q.n===v);
     if(!row) return {err:'no verse '+v+' in '+(book.hebrew||book.english)+' '+ch};
-    parts.push(shown(row.t));
+    parts.push(mend(id,ch,v,shown(row.t))); vs.push(v);
   }
   /* AND THE REFERENCE COMES BACK IN THE NAME IT WAS ASKED IN. A tool that
      quietly answered "DAḆARIM" to a question about "DEḆARIM" would walk its
      own spelling into the world one pasted verse at a time. */
   const nm=m[1].trim();
   return {book:book.hebrew||book.english, ref:nm+' '+ch+':'+v0+(v1===null?'':'-'+v1),
-          t:parts.join(' ')};
+          t:parts.join(' '), fix:s=>vs.reduce((s,v)=>mend(id,ch,v,s),s)};   /* (the same mends, for a text set beside it) */
 }
 
 const TEXT=load();
@@ -151,7 +160,7 @@ if(args[0]==='--find'){
   for(const k of Object.keys(TEXT)){ const b=TEXT[k];
     for(const ch of Object.keys(b.chapters||{})){
       for(const row of b.chapters[ch].verses||[]){
-        const t=shown(row.t);
+        const t=mend(k,ch,row.n,shown(row.t));
         if(norm(t).indexOf(needle)<0) continue;
         n++;
         console.log((b.hebrew||b.english)+' '+ch+':'+row.n);
@@ -203,7 +212,7 @@ if(args[0]==='--emit'){
     const chapters={};
     let verses=0;
     for(const ch of Object.keys(b.chapters||{})){
-      chapters[ch]=(b.chapters[ch].verses||[]).map(r=>{ verses++; return [r.n,shown(r.t)]; });
+      chapters[ch]=(b.chapters[ch].verses||[]).map(r=>{ verses++; return [r.n,mend(id,ch,r.n,shown(r.t))]; });
     }
     const body='BESORAH.book('+JSON.stringify({ id:out, hebrew:b.hebrew, english:b.english,
       section:b.section, chapters })+');\n';
@@ -376,7 +385,7 @@ if(args[0]==='--check'){
     const r=resolve(TEXT,q.v.ref);
     if(r.err){ missing++;
       console.log('NO SOURCE  '+String(q.of)+'  '+q.v.ref+'\n           '+r.err); continue; }
-    const a2=plain(q.v.t), b2=r.t;
+    const a2=r.fix(plain(q.v.t)), b2=r.t;   /* a stray mark mended on both sides, so either text passes and no other */
     if(a2===b2){ ok++; continue; }
     /* a verse quoted in PART is honest — the whole of Bereshith 14:10 is not
        wanted on a block of slime. What is not honest is words that are not

@@ -173,7 +173,7 @@ STORY.act({
 
   /* ---------------- VII.3 — THE WOMEN'S REPORT ---------------- */
   { id:'told', title:'The upper room', date:'the same morning', place:'upperroom', time:'day',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     actors:[
       ...ROOM(ELEVEN),
       Object.assign({id:'magdala', at:'stairTop', face:-Math.PI/2},MAGDALA),
@@ -332,7 +332,7 @@ STORY.act({
 
   /* ---------------- VII.6 — THAT EVENING, THE DOORS SHUT ---------------- */
   { id:'evening', title:'The upper room', date:'the evening of the first day of the week', place:'upperroom', time:'lamplit',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     actors:[
       ...ROOM(ELEVEN.filter(k=>k!=='toma')),
       {id:'qleophas', name:'Qleophas', key:'Qleophas', at:'stairTop', face:-Math.PI/2, robe:0x6b5a44, cloth:0xd8ceb4, beard:0x3a2a1e, skin:0x7a4e29},
@@ -395,7 +395,7 @@ STORY.act({
 
   /* ---------------- VII.7 — EIGHT DAYS AFTER: T’OMA ---------------- */
   { id:'toma', title:'The upper room', date:'eight days after', place:'upperroom', time:'lamplit',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     actors:[
       ...ROOM(ELEVEN),
       Object.assign({id:'yahusha', at:MIDST, face:Math.PI, hidden:true},YAHUSHA)
@@ -593,7 +593,7 @@ STORY.act({
 
   /* ---------------- VII.11 — WAITING ---------------- */
   { id:'waiting', title:'The upper room', date:'the days after', place:'upperroom', time:'day',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     actors:[
       ...ROOM(ELEVEN),
       Object.assign({id:'miryam', at:[21,29], face:-Math.PI/2, sit:true},MIRYAM),

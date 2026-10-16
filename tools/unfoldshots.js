@@ -35,9 +35,9 @@ const fs=require('fs'), path=require('path');
       const dir=path.join(outDir,S.id); fs.mkdirSync(dir,{recursive:true});
       const empty=caps.caps.filter(c=>!c.text||!c.text.trim());
       if(empty.length){ bad++; console.log(S.id+': '+empty.length+' caption(s) came back with no words: '+empty.map(c=>c.ref||('@'+c.t)).join(', ')); }
-      const REFS=(process.env.REFS||'').split(',').map(x=>x.trim()).filter(Boolean);   /* REFS="1:20,1:27": only the captions whose reference ends so */
+      const REFS=(process.env.REFS||'').split(',').map(x=>x.trim()).filter(Boolean);   /* REFS="1:20,3:2": only the captions that open on that verse (3:2 finds 3:2-3, never 3:21) */
       for(let i=0;i<caps.caps.length;i++){ const c=caps.caps[i], mid=(c.t+c.to)/2;
-        if(REFS.length&&!REFS.some(r=>(c.ref||'').endsWith(' '+r))) continue;
+        if(REFS.length&&!REFS.some(r=>new RegExp('\\s'+r.replace(/[.:]/g,'\\$&')+'(?:[-–][0-9:]+)?$').test(c.ref||''))) continue;
         await page.evaluate(async P=>{ STAGE.seek(P.mid);
           for(let k=0;k<P.FR;k++){ STAGE.seek(P.mid); await new Promise(r=>requestAnimationFrame(r)); } },{mid,FR});
         const file=path.join(dir,String(i+1).padStart(2,'0')+'-'+(c.ref||'t'+mid).replace(/[^A-Za-z0-9]+/g,'_')+'.png');

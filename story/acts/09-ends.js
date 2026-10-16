@@ -113,7 +113,7 @@ STORY.act({
 
   /* ---------------- VIII.1 — THE FESTIVAL OF WEEKS ---------------- */
   { id:'shavuot', title:'Yahrushalayim', date:'the Festival of weeks', place:'upperroom', time:'day',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     crowds:[ {id:'pilgrims', n:340, area:[2,-8,40,23], look:['urHouse',0,0], keep:[[10,18,26,25.6]]} ],
     actors:[
       ...ROOM(ELEVEN),
@@ -177,7 +177,7 @@ STORY.act({
 
   /* ---------------- VIII.2 — THE FIRST ASSEMBLY ---------------- */
   { id:'assembly', title:'The upper room', date:'in those days', place:'upperroom', time:'lamplit',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     actors:[
       ...ROOM(ELEVEN),
       Object.assign({id:'miryam', at:[21,29], face:-Math.PI/2, sit:true},MIRYAM),
@@ -258,7 +258,7 @@ STORY.act({
     actors:[
       Object.assign({id:'stephanos', at:'accused', face:Math.PI},STEPHANOS),
       {id:'kohenG', name:'The kohen gadol', key:'Qayapha', dress:'kohen', at:'qayapha', face:0, robe:0x3a3a6a, cloth:0xe8e0cc, beard:0x6d6a66, kind:'oldman', sit:true, bench:true},
-      ...folk('o',10,[5.6,24.8,18.4,25.4],0,{dress:'scribe', kind:'oldman', sit:true, bench:true}),
+      ...folk('o',10,[5.6,24.8,18.4,25.4],0,{dress:'scribe', kind:'oldman', sit:true, bench:true}).map((a,k)=>Object.assign(a,{at:[k<5?5.8+k*1.2:13.4+(k-5)*1.2,25]})),   /* (a seat apiece along their bench) */
       {id:'fr0', name:'Men put up to it', at:['accused',-2.4,2.2], face:Math.PI, robe:0x6a5a3a, cloth:0xcfc4aa, beard:0x2c241f},
       {id:'fr1', at:['accused',2.4,2.2], face:Math.PI, robe:0x5a4a3a, cloth:0xb9ab8e, beard:0x1e1814},
       Object.assign({id:'shaul', at:['fire',2.4,0.6], face:Math.PI*1.1},SHAUL),
@@ -498,7 +498,7 @@ STORY.act({
   { id:'tabitha', title:'Yapho', date:'in those days', place:'yapho', time:'day',
     player:{ at:'tabStreet', face:-Math.PI/2, look:ADULT },
     actors:[
-      {id:'tabitha', name:'Taḇitha', key:'Tabitha', kind:'woman', at:[-10.5,24], y:'tabY', face:Math.PI/2, robe:0x8a6a5a, cloth:0xe8e2d2, skin:0x86573a},
+      {id:'tabitha', name:'Taḇitha', key:'Tabitha', kind:'woman', at:[-10.5,24], y:'tabBedY', ground:true, face:Math.PI/2, robe:0x8a6a5a, cloth:0xe8e2d2, skin:0x86573a},
       ...WIDOWS.map(([x,z,f],k)=>({id:'wd'+k, name:k?undefined:'The widows', key:'the widows of yapho', kind:'woman', at:[x,z], y:'tabY', face:f,
         robe:[0x3c3a44,0x4a3a3a,0x3a3a2e,0x44403a][k], cloth:[0x3c3a44,0x5a4a44,0x2e2c30,0x6a5a4a][k], skin:[0x7a4e30,0x86573a,0x704a27,0x7c5430][k]})),
       {id:'m0', name:'Two men', key:'the two men sent to kepha', at:['tabStreet',-1,-1.2], face:-Math.PI/2, robe:0x6b5a44, cloth:0xd8ceb4, beard:0x2c241f},
@@ -537,9 +537,9 @@ STORY.act({
       {t:'hide', id:['coat0','coat1','coat2']},
       {t:'move', who:['wd0','wd1','wd2','wd3'], to:[[-5.8,23.2],[-5.4,24.2],[-5.8,25.2],[-6.4,24]], speed:1},
       {t:'hide', id:['wd0','wd1','wd2','wd3']},
-      {t:'move', who:'kepha', to:[-11.2,22.7], speed:0.9},
-      {t:'face', who:'kepha', to:'tabitha'},
-      {t:'sit', who:'kepha'},
+      {t:'move', who:'kepha', to:[-11.4,22.8], speed:0.9},
+      {t:'face', who:'kepha', to:[-11.9,24]},
+      {t:'kneel', who:'kepha'},   /* (9:40: on his knees on the floor at her head — set to sit, he sat on the air beside her linen) */
       {t:'cam', from:[-7.6,4.3,21.4], look:[-11,3.3,23.4], dur:2.5},
       {t:'pose', who:'kepha', arms:'up'}, {t:'wait', s:2}, {t:'pose', who:'kepha'},
       {t:'cam', from:[-9.2,3.9,22.6], look:[-11.6,3.2,24], dur:2},
@@ -783,7 +783,7 @@ STORY.act({
       {t:'cam', from:['table',3.2,2.4], fdy:1.7, look:'pr2', dur:0.1},
       {t:'note', text:'The house of Miryam was the gathering place of the Natsarim in Yahrushalayim; her son Yahuchanon, who was also called Mark, would set out with Barnaḇah and Sha’ul (Acts 12:25). Rhode is a Greek name: "rose".'},
       {t:'move', who:'kepha', to:[22.8,22.9], speed:1.2, wait:false},
-      {t:'cam', from:['stairFoot',-1.3,-2.25], fdy:1.7, look:'kepha', dur:2},   /* beside the gate, before his face as he knocks */
+      {t:'cam', from:['urHouse',4.5,-0.45], fdy:1.7, look:'kepha', dur:2},   /* beside the gate, before his face as he knocks */
       {t:'face', who:'kepha', to:'leaf'},
       {t:'read', ref:'ACTS 12:13'},
       {t:'cam', release:true},
@@ -974,9 +974,10 @@ STORY.act({
       {t:'sit', who:['shaul','sila']},
       {t:'cam', from:['prayer',3,4], fdy:1.6, look:'shaul', dur:2},
       {t:'read', ref:'ACTS 16:13'},
-      {t:'note', text:'Thyatira, in Asia, was a city of dyers: inscriptions found there name its guild of purple-dyers. The purple was dear, and those who sold it were not poor.'},
       {t:'mood', who:'ludia', ex:'awe'},
       {t:'cam', from:['prayer',-2.4,3.4], fdy:1.4, look:'ludia', dur:2.5},
+      {t:'read', ref:'ACTS 16:14'},
+      {t:'note', text:'Thyatira, in Asia, was a city of dyers: inscriptions found there name its guild of purple-dyers. The purple was dear, and those who sold it were not poor.'},
       {t:'wait', s:1.5},
       /* she and her household immersed in the river */
       {t:'show', id:['lh0','lh1','lh2']},
@@ -1016,7 +1017,7 @@ STORY.act({
       LEGION('lc0',['bemaFront',-3,-1],0), LEGION('lc1',['bemaFront',3,-1],0),
       {id:'jailer', name:'The jailer', key:'the jailer of philippi', folk:'roman', dress:'man', at:['prisonDoor',-1.2,1.6], face:-Math.PI/2, robe:0x6a4a3a, cloth:0xb9ab8e, sash:0x3a2a1a, beard:0x3a2a1e},
       ...[[10,7.6,0],[10.6,14.6,Math.PI],[12.4,7.4,0]].map(([x,z,f],k)=>({id:'pz'+k, at:[x,z], face:f, sit:true, ground:true, robe:[0x5c5040,0x4f6a4f,0x6b5a44][k], cloth:[0xa89a7e,0x8a7a60,0x9a8a70][k], beard:[0x3a2a1e,0x2c241f,0x6d6a66][k], skin:[0x9a6a40,0x8a5a36,0xa87a50][k]})),
-      ...[0,1,2].map(k=>({id:'jh'+k, at:['jailerIn',k*1.2-1.2,1], face:-Math.PI/2, folk:'roman', kind:k===0?'woman':'man', dress:k===0?'woman':'man', small:k===2, robe:[0x7a5040,0x5a6470,0x8a7a60][k], cloth:[0xe8e2d2,0xcfc4aa,0xd8ceb4][k]}))
+      ...[0,1,2].map(k=>({id:'jh'+k, at:['jailerIn',k*1.2-1.2,-0.6], face:-Math.PI/2, folk:'roman', kind:k===0?'woman':'man', dress:k===0?'woman':'man', small:k===2, robe:[0x7a5040,0x5a6470,0x8a7a60][k], cloth:[0xe8e2d2,0xcfc4aa,0xd8ceb4][k]}))   /* (before his table: two stood in it) */
     ],
     things:[ {id:'door1', kind:'box', at:[8.25,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
              {id:'door2', kind:'box', at:[14.05,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
@@ -1324,8 +1325,10 @@ STORY.act({
       {t:'read', ref:'ACTS 27:29'},
       {t:'show', id:'skiff'},
       {t:'move', who:['s0','s1'], to:[[SX+1.6,-6.4],[SX+1.4,-5.4]], speed:1.4, wait:false},
+      {t:'cam', from:[SX-0.8,1.8,-1.2], look:[SX+2.6,0.6,-6.6], dur:1.6},   /* (the sailors at the bow, letting the skiff down) */
       {t:'read', ref:'ACTS 27:30'},
       {t:'face', who:'shaul', to:'captain'},
+      {t:'cam', from:[SX+1.4,1.4,-1.6], look:'shaul', dur:1.2},
       {t:'say', who:'shaul', ref:'ACTS 27:31', turn:false},
       {t:'drift', id:'skiff', by:[18,0,-10], dur:5, wait:false},
       {t:'read', ref:'ACTS 27:32'},

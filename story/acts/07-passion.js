@@ -62,15 +62,18 @@ const LEGION=(id,at,face,extra)=>Object.assign({id,at,face,folk:'roman',dress:'l
 
 /* the crowds of each scene */
 const GATECROWD=folk('g',18,[-20,40,-8,52],Math.PI*0.5);                       /* at the gate (Mattithyahu 21:8) */
-const SELLERS=folk('v',6,[-34,-57,-18,-53],Math.PI);                           /* buying and selling in the court */
-const COURTFOLK=folk('c',10,[-22,-56,-12,-51],Math.PI);
+const SELLERS=folk('v',6,[-34,-57,-18,-53],Math.PI)                           /* buying and selling in the court */
+  .map((a,k)=>Object.assign(a,{at:[[-32.6,-31.4,-27,-22.6,-21.4,-17][k],-56], face:a.face-Math.PI}));   /* (each behind his table, facing the court: scattered, two stood inside one) */
+const COURTFOLK=folk('c',10,[-22,-56,-12,-51],Math.PI)
+  .map(a=>a.id==='c0'?Object.assign(a,{at:[-18.6,-52.8]}):a.id==='c1'?Object.assign(a,{at:[-21.2,-53.0]}):a);   /* (two stood on the marks the lame man and a child are sent to) */
 const KIDS=[0,1,2,3].map(k=>({id:'kid'+k, name:k?undefined:'The children', kind:k%2?'woman':'boy', small:true, at:[-14+k*1.3,-51], face:Math.PI, robe:[0x9a5a62,0x6a7a5a,0x9a7a5a,0x5a6a8a][k], cloth:[0xe0c27a,0xe6e0cf,0xd8cfb8,0xe8e2d2][k]}));
 const GIVERS=folk('r',5,[-2,-40.6,4,-39.6],0,{robe:0x5a2a4a, sash:0xb08d3c});   /* the rich putting in much */
 const PLOTTERS=[{id:'kg1', name:'A chief kohen', dress:'kohen', at:[-6,-51.6], face:Math.PI, beard:0x6d6a66, kind:'oldman'},
                 {id:'kg2', dress:'kohen', at:[-4.6,-52], face:Math.PI, beard:0x2c241f}];
 const BAND=folk('b',10,[51,-62,57,-54],Math.PI/2);                               /* the crowd with swords and clubs */
 const HPCOURT=folk('h',7,[10,30.6,16,34],0);                                     /* the officers about the fire */
-const COUNCIL=folk('o',10,[5.6,24.8,18.4,25.4],0,{dress:'scribe', kind:'oldman'});
+const COUNCIL=folk('o',10,[5.6,24.8,18.4,25.4],0,{dress:'scribe', kind:'oldman'})
+  .map((a,k)=>Object.assign(a,{at:[k<5?5.8+k*1.2:13.4+(k-5)*1.2,25]}));          /* (along their bench, a seat apiece, the kohen gadol's place clear between them) */
 const YAHUDIM=folk('y',20,[-36,-56,-22,-51],Math.PI);                            /* before the Pavement */
 const ROADFOLK=folk('f',12,[-62,-2,-54,8],Math.PI);                         /* following to the place of a skull */
 
@@ -123,7 +126,9 @@ STORY.act({
       .concat([0,1,2,3,4].map(k=>({id:'gar'+k, kind:'box', at:[-13.4+(k%2)*1.6,49-k*1.6], w:1, h:0.06, d:1.4, color:[0x7c6a52,0x5a6470,0x8e6f4c,0x6e5a70,0x7a5040][k], hidden:true}))),
     beats:[
       {t:'ride', who:'yahusha', on:'colt'},
-      {t:'cam', from:[-2,9,58], look:[-14,4,36], dur:0.1},
+      /* (from behind Him on the road, over the pilgrims, along the way to the gate — written from the gate, so the
+         true city's higher walls stand in the top of the picture and not across the middle of it) */
+      {t:'cam', from:['gateOut',-18,24], fdy:7, look:{at:['gateOut',-5,6], dy:1.2}, dur:0.1},
       {t:'title', text:'Act VI · Passion Week', sub:'The entry · Pesach · Gethsemane · Golgotha'},
       {t:'note', text:'Pilgrims came up to Yahrushalayim from all the land for the Pesach, and the city was full. The road from the Mount of Olives brought Him round to her gates, and the crowds came out to meet Him.'},
       {t:'show', id:['gar0','gar1','gar2','gar3','gar4']},
@@ -133,11 +138,11 @@ STORY.act({
       {t:'witness', text:'Cut a branch and spread it on the way', items:['branchCut'], verb:'Cut a branch', hold:0.8, deliver:[-12.4,46], r:2.2, carryText:'Lay it on the road before Him'},
       {t:'show', id:'branch'},
       {t:'face', who:'yahusha', to:'gateIn'},
-      {t:'cam', on:'yahusha', shot:'back', toward:'g3', back:6, dur:2.5},
+      {t:'cam', from:['gateOut',-7,5], fdy:3.2, look:'yahusha', dur:2.5},   /* (behind Him and to the left, the gate ahead: not over the backs of those following) */
       {t:'say', who:'crowds', ref:'MATTITHYAHU 21:9', turn:false},
       {t:'move', who:'yahusha', to:'gateIn', speed:0.8},
       {t:'move', who:'yahusha', to:'gateStreet', speed:0.8, wait:false},
-      {t:'cam', on:'yahusha', shot:'back', toward:'g3', back:6, dur:3},
+      {t:'cam', from:['gateIn',0.8,5], fdy:2.4, look:{at:'gateStreet', dy:1.6}, dur:3},   /* (inside the gate behind Him, up the street He walks — the crowd He has left is behind Him) */
       {t:'say', who:'city', ref:'MATTITHYAHU 21:10', turn:false},
       {t:'say', who:'crowds', ref:'MATTITHYAHU 21:11', turn:false},
       {t:'time', to:'dusk'},
@@ -337,7 +342,7 @@ STORY.act({
 
   /* ---------------- VI.6 — THE SUPPER ---------------- */
   { id:'supper', title:'The upper room', date:'the night of the Pesach', place:'upperroom', time:'night',
-    player:{ at:[21,33], face:-Math.PI*0.75, look:ADULT },
+    player:{ at:[20.5,32.5], face:-Math.PI*0.75, look:ADULT },
     actors:[
       Object.assign({id:'yahusha', at:[16.8,28.7], face:0, sit:true},YAHUSHA),
       T('andri',[14.4,28.7],{face:0, sit:true}), T('yahuchanon',[15.6,28.7],{face:0, sit:true}), T('yahudahQ',[18,28.7],{face:0, sit:true}),
@@ -556,7 +561,7 @@ STORY.act({
       {id:'qayapha', name:'Qayapha the kohen gadol', key:'Qayapha', dress:'kohen', at:'qayapha', face:0, robe:0x3a3a6a, cloth:0xe8e0cc, beard:0x6d6a66, kind:'oldman', sit:true, bench:true},
       T('kepha',[27,30],{face:-Math.PI/2}),
       {id:'maid', name:'A servant girl', kind:'woman', at:[20.2,31.4], face:Math.PI/2, robe:0x7a5a4a, cloth:0xe8e2d2, skin:0x7c5430},
-      ...COUNCIL.map(a=>Object.assign({},a,{sit:true})), ...HPCOURT
+      ...COUNCIL.map(a=>Object.assign({},a,{sit:true, bench:true})), ...HPCOURT
     ],
     things:[ {id:'seatQ', kind:'throne', style:'kohen', at:'qayapha', face:0} ],
     beats:[
@@ -753,16 +758,19 @@ STORY.act({
       ...PLOTTERS.map((a,k)=>Object.assign({},a,{at:['scoffers',k*1.6,-1.2], face:-Math.PI/2})),
       ...ROADFOLK
     ],
-    things:[ {id:'beam', kind:'box', at:['roadBend',1.6,2.4], w:0.22, h:0.22, d:3.2, color:0x6e5238},
+    things:[ {id:'beam', kind:'box', at:['roadBend',1.6,2.4], w:0.22, h:0.22, d:1.9, color:0x6e5238},   /* (the crossbeam alone, a man's span: at 3.2 it swept through those beside him) */
              /* His garments, in a heap where the soldiers sit to cast lots for them */
              {id:'garments', kind:'box', at:['soldiers',0.9,0.7], w:0.8, h:0.16, d:0.6, color:0xd6c9a8, hidden:true},
              {id:'tunic', kind:'box', at:['soldiers',-0.3,1.3], w:0.5, h:0.1, d:0.7, color:0xcfc2a0, hidden:true} ],
     beats:[
-      {t:'lead', id:'beam', by:'kurene', back:0.1, up:1.45, turn:Math.PI/2},
-      {t:'cam', from:[-50,6,10], look:[-62,2,-24], dur:0.1},
+      {t:'lead', id:'beam', by:'kurene', back:0.27, up:1.50, turn:Math.PI/2}, {t:'pose', who:'kurene', arms:'carry'},   /* (across the backs of his shoulders, behind his neck, not through it) */
+      /* (Shim'on seen with the beam on him, before his face as he takes up the way — the wide shot showed the
+         whole slope, and him too small to see what he bore) */
+      {t:'cam', from:{rel:'kurene', off:[-2.06,1.8,-1.86]}, look:'kurene', dur:0.1},
+      {t:'read', ref:'LUKE 23:26'},                                                             /* (the stake laid on him, and then they go) */
       {t:'move', who:['yahusha','kurene','sold1','sold2'], to:[['foot',2.4,0],['foot',4.6,1.6],['foot',3,-2],['foot',4.4,-1.2]], speed:1.1, wait:false},
       {t:'follow', who:ids(ROADFOLK).slice(0,6).concat(['miryam','yahuchanon','magdala','qlophah']), target:'yahusha'},
-      {t:'read', ref:'LUKE 23:26'},
+      {t:'cam', from:[-50,6,10], look:[-62,2,-24], dur:2},
       {t:'read', ref:'LUKE 23:27'},
       {t:'stop', who:['yahusha']},
       {t:'face', who:'yahusha', to:'magdala'},
@@ -772,7 +780,7 @@ STORY.act({
       {t:'say', who:'yahusha', ref:'LUKE 23:30', turn:false},
       {t:'say', who:'yahusha', ref:'LUKE 23:31', turn:false},
       {t:'move', who:['yahusha','kurene','sold1','sold2'], to:[['foot',0.6,0],['foot',2.2,1.6],['foot',1,-2],['foot',2.4,-1.2]], speed:0.7},
-      {t:'lead', id:'beam'}, {t:'hide', id:'beam'},
+      {t:'lead', id:'beam'}, {t:'hide', id:'beam'}, {t:'pose', who:'kurene'},
       {t:'stop', who:ids(ROADFOLK).slice(0,6).concat(['miryam','yahuchanon','magdala','qlophah'])},
       {t:'move', who:['miryam','yahuchanon','magdala','qlophah'], to:[['afar',-1,-1],['afar',0.6,-2.2],['afar',1.6,0.8],['afar',-0.4,1.6]], speed:1, wait:false},
       {t:'read', ref:'LUKE 23:32'},

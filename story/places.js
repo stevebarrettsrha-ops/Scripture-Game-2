@@ -53,8 +53,11 @@ const PLACES={
   /* To the End of the Earth (Act VIII) */
   gazaroad:   {lat:31.58,  lon:34.92,  flat:46, why:'the way down from Yahrushalayim to Azzah, "this is desert" (Acts 8:26)'},
   damascus:   {lat:33.51,  lon:36.29,  flat:60, why:'Damascus, the road in from the south-west and the street called Straight (Acts 9:11)'},
-  yapho:      {lat:32.054, lon:34.752, flat:34, why:'Yapho by the sea, the house of Shim‛on the tanner (Acts 10:6)'},
-  caesareaM:  {lat:32.50,  lon:34.892, flat:34, why:'Caesarea by the sea, the house of the captain Cornelius (Acts 10:24)'},
+  /* (the coast's set lays its sea toward its +x, and the Great Sea lies west-north-west of both: `turn`ed, its
+     +x looks out over the true sea, which a set laid unturned had put inland, toward the hills; and over the town
+     of the voyage on that shore, which its pool is kept short of: story/settings.js, coast) */
+  yapho:      {lat:32.054, lon:34.752, flat:34, turn:true, coast:true, why:'Yapho by the sea, the house of Shim‛on the tanner (Acts 10:6)'},
+  caesareaM:  {lat:32.50,  lon:34.892, flat:34, turn:true, coast:true, why:'Caesarea by the sea, the house of the captain Cornelius (Acts 10:24)'},
   antioch:    {lat:36.20,  lon:36.16,  flat:46, why:'Antioch on the Orontes, where they were first called Natsarim (Acts 11:26)'},
   lystra:     {lat:37.578,  lon:32.453, flat:46, why:'Lustra in Lukaonia, the house of Zeus before its gate (Acts 14:13)'},
   philippi:   {lat:41.013,  lon:24.287, flat:60, why:'Philippi of Makedonia, a colony, its river outside the gate (Acts 16:12-13)'},
@@ -107,8 +110,39 @@ function findShore(def){
     const c=k.cell(ix+Math.round(Math.cos(t)*r),iz+Math.round(Math.sin(t)*r)); if(c&&c.lake!==undefined&&c.lake>c.h) lake=c.lake; }
   return {x:(ix+0.5)*B, z:(iz+0.5)*B, y:lake!==null?lake*B:k.topY(ix,iz)};
 }
+/* ---- A SET BY THE GREAT SEA (`coast`) STANDS ON ITS STRAND ----
+   The finder wants a dry, level circle clear of the voyage's own towns, and on the coast of Yapho that is
+   only to be had some hundreds of metres inland, thirty metres up the hill: the set's sea was then a pool
+   of still water raised on the hillside, the true sea out of sight. Here the strand itself is looked for,
+   clear of the towns: low land, the true sea some twenty metres out along the set's own seaward side
+   (its +x, turned or not), and the beach running straight enough either way along it. The set then lays
+   no sea of its own (story/settings.js, sea): the Great Sea is its sea. */
+function findCoast(def){
+  const k=K(), B=k.B, S=k.setScale, W0=k.WATER_Y, p=k.llToWorld(def.lat,def.lon), sx=def.turn?-1:1, busy=standing();
+  const landM=(x,z)=>{ const c=k.cell(Math.floor(x/B),Math.floor(z/B)); return c&&c.kind!=='wall'?(c.h*B-W0)/S:null; };
+  /* (how far out along +x the sea begins from a point, in metres; null if not within sixty) */
+  const seaOut=(x,z)=>{ for(let m=2;m<=60;m+=2) if(landM(x+sx*m*S,z)===null) return m; return null; };
+  let best=null, bs=1e18;
+  for(let ring=0;ring<=60;ring++){ const n=Math.max(1,ring*8);
+    for(let a=0;a<n;a++){ const t=a/n*Math.PI*2, d=ring*60, x=p[0]+Math.cos(t)*d, z=p[1]+Math.sin(t)*d;
+      if(busy.some(b=>Math.hypot(x-b.x,z-b.z)<b.r)) continue;
+      const h=landM(x,z); if(h===null||h<0.5||h>6) continue;
+      const s0=seaOut(x,z); if(s0===null||s0<14||s0>34) continue;
+      const sA=seaOut(x,z+30*S), sB=seaOut(x,z-30*S); if(sA===null||sB===null) continue;
+      /* (and the land behind it, where the town stands, low and even enough to lay level) */
+      let lo=1e9, hi=-1e9, ok=true;
+      for(const [dx,dz] of [[-10,0],[-25,0],[-40,0],[-25,-25],[-25,25],[0,-20],[0,20]]){ const g=landM(x+sx*dx*S,z+dz*S);
+        if(g===null){ ok=false; break; } lo=Math.min(lo,g); hi=Math.max(hi,g); }
+      if(!ok||hi-lo>7) continue;
+      const score=Math.abs(s0-22)*8+Math.abs(sA-s0)+Math.abs(sB-s0)+(hi-lo)*6+d*0.004;
+      if(score<bs){ bs=score; best={x,z}; } } }
+  if(!best) return null;
+  const ix=Math.floor(best.x/B), iz=Math.floor(best.z/B);
+  return {x:(ix+0.5)*B, z:(iz+0.5)*B, y:k.topY(ix,iz), coastal:true};
+}
 function find(def){
   if(def.shore&&K().trueEarth&&K().trueEarth()) return findShore(def);
+  if(def.coast&&K().trueEarth&&K().trueEarth()){ const c=findCoast(def); if(c) return c; }
   const k=K(), p=k.llToWorld(def.lat,def.lon); let P={x:p[0],z:p[1]};
   /* out from under the city along its true bearing, when it would stand in her */
   const yp=k.yahruPos();
@@ -123,6 +157,14 @@ function find(def){
       if(score<bs){ bs=score; best={x,z}; } } }
   if(!best) best=P;
   const B=k.B, ix=Math.floor(best.x/B), iz=Math.floor(best.z/B);
+  /* ---- AND WHERE THE EARTH HAS ONLY SEA ----
+     The soundings lose a small island (Melite, sampled every sixteen kilometres, is all sea), and the set
+     was quietly anchored in open water at the sea's own face: its ground and its hills were laid nowhere,
+     and its beach was awash. Such a place is said to be at sea (`sea`), and its set is built up out of the
+     sea from the bed (the kit's overSea), its level one course above the water so its beach stands dry. */
+  /* (said once: a place is found once, and kept) */
+  if(!k.cell(ix,iz)){ console.warn('STORYPLACES: no dry ground near '+def.lat+','+def.lon+' ('+def.why+'): its set is raised out of the sea');
+    return {x:(ix+0.5)*B, z:(iz+0.5)*B, y:(Math.floor(k.WATER_Y/B)+1)*B, sea:true}; }
   return {x:(ix+0.5)*B, z:(iz+0.5)*B, y:k.topY(ix,iz)};
 }
 window.STORYPLACES={

@@ -79,7 +79,8 @@ const STREET=folk('k',10,[-1,-6,1.5,6],Math.PI/2);
 const GROUPS=[[-14,-26],[-14,-12],[-14,2],[-14,16],[-14,30]];
 const FIVE=[].concat(...GROUPS.map((g,i)=>folk('g'+i+'_',7,[g[0]-3,g[1]-3,g[0]+3,g[1]+3],-Math.PI/2,{sit:true})));
 const LEADS=GROUPS.map((g,i)=>'g'+i+'_0');
-const TABLE=folk('t',8,[8,6,13,13],-Math.PI/2,{sit:true});            /* tax collectors and sinners at the table */
+const TABLE=folk('t',8,[8,6,13,13],-Math.PI/2,{sit:true})            /* tax collectors and sinners at the table */
+  .map((a,k)=>Object.assign(a,{at:[k%2?12.0:9.2,8.35+(k>>1)*0.95], face:k%2?-Math.PI/2:Math.PI/2}));   /* (along its two sides, facing it, the feet short of it: scattered, three sat in it) */
 const BEACH=folk('b',18,[13,-10,19.5,10],Math.PI/2);                   /* the crowd on the beach */
 const MOURN=folk('y',10,[-1,0,6,12],-Math.PI/2);                               /* the Yahuḏim come to comfort the sisters */
 const DOORFOLK=folk('d',12,[-1.8,3,0.3,14],-Math.PI/2);                       /* the whole city at the door (Mark 1:33) */
@@ -432,12 +433,12 @@ STORY.act({
     actors:[
       Object.assign({id:'yahusha', at:[20,-10], face:-0.2},YAHUSHA),
       T('kepha',[21.2,-12],{face:-0.2}), T('andri',[19,-12.4],{face:-0.2}),
-      Object.assign({},T('mattithyahu',[14.2,-4.9],{face:Math.PI/2,sit:true,bench:true})),
+      Object.assign({},T('mattithyahu',[13.55,-4.0],{face:Math.PI/2,sit:true,bench:true})),   /* (back from his booth, his knees short of it) */
       {id:'ph1', name:'The Pharisees', dress:'scribe', at:[22,2], face:-Math.PI/2, robe:0xd8d0bb, cloth:0x3a3a4a, beard:0x2c241f},
       {id:'ph2', dress:'scribe', at:[22.6,3.8], face:-Math.PI/2, robe:0xcfc4aa, cloth:0x4a4a5a, beard:0x6d6a66},
       ...TABLE
     ],
-    things:[ {id:'booth', kind:'box', at:[14.8,-4], w:1.4, h:0.8, d:2.2, color:0x6e5238},
+    things:[ {id:'booth', kind:'box', at:[14.8,-4], w:1.4, h:0.8, d:2.2, color:0x6e5238}, {id:'stool', kind:'box', at:[13.55,-4.0], w:0.42, h:0.4, d:0.42, color:0x5d4a36},   /* (his seat at it: he sat on the air) */
              {id:'coins', kind:'box', at:[14.8,-4.2], w:0.5, h:0.05, d:0.4, y:0.8, color:0xb8a060},
              {id:'table', kind:'box', at:[10.6,9.6], w:1.4, h:0.5, d:5.2, color:0x7a5a3e},
              {id:'bread1', kind:'basket', at:[17.6,3.6], full:true}, {id:'bread2', kind:'basket', at:[18.4,4.6], full:true}, {id:'bread3', kind:'basket', at:[16.8,4.8], full:true} ],
@@ -449,11 +450,11 @@ STORY.act({
       {t:'cam', on:'yahusha', shot:'back', toward:'mattithyahu', dur:1.8},
       {t:'read', ref:'MATTITHYAHU 9:9', who:'yahusha'},
       {t:'stand', who:'mattithyahu'},
-      {t:'move', who:'mattithyahu', to:[15,-7], speed:1.4},
+      {t:'move', who:'mattithyahu', to:[13.6,-6.2], speed:1.4}, {t:'move', who:'mattithyahu', to:[15,-7], speed:1.4},   /* (round the end of his booth, not through its corner) */
       {t:'cam', release:true},
       {t:'witness', text:'There is to be a meal at the house. Carry the bread to the table', items:['bread1','bread2','bread3'], verb:'Lift the basket', hold:0.4, deliver:[11.6,9.6], r:3, carryText:'Take the bread to the table'},
-      {t:'place', who:'yahusha', at:[11.6,7.2], face:Math.PI/2}, {t:'place', who:'mattithyahu', at:[9.4,7.4], face:Math.PI/2},
-      {t:'place', who:'kepha', at:[11.6,12.2], face:-Math.PI/2}, {t:'place', who:'andri', at:[9.6,12.2], face:-Math.PI/2},
+      {t:'place', who:'yahusha', at:[12.0,7.4], face:-Math.PI/2}, {t:'place', who:'mattithyahu', at:[9.2,7.4], face:Math.PI/2},
+      {t:'place', who:'kepha', at:[12.0,12.1], face:-Math.PI/2}, {t:'place', who:'andri', at:[9.2,12.1], face:Math.PI/2},   /* (at the table's ends, its sides, facing it) */
       {t:'sit', who:['yahusha','mattithyahu','kepha','andri']},
       {t:'cam', from:[16,3,11], look:[10.6,1,9.6], dur:2.5},
       {t:'read', ref:'MATTITHYAHU 9:10'},
@@ -867,7 +868,7 @@ STORY.act({
       {t:'cam', release:true},
       {t:'read', ref:'MARK 5:37'},
       {t:'show', id:ids(WAIL).concat('mother')},
-      {t:'move', who:['yairA','yahusha','kepha','yaaqob','yahuchanon','hh1','hh2'], to:[[0.4,-10.4],[-0.6,-12],[-1.2,-13.6],[-1.6,-10.8],[-2.2,-12.8],[-0.8,-8.2],[-1,-15.8]], speed:1.3},
+      {t:'move', who:['yairA','yahusha','kepha','yaaqob','yahuchanon','hh1','hh2'], to:[[0.4,-10.4],[-0.6,-12],[-1.2,-13.6],[-1.6,-10.8],[-2.2,-12.8],[-0.8,-8.2],[-2.4,-15.6]], speed:1.3},   /* (the messenger's beside the wailer at -1,-15.5, not on her: he could not come to it, and was carried) */
       {t:'goal', text:'Follow as far as the house of Ya‛ir', goto:[-4.4,-7.6], r:3},
       {t:'cam', from:[-6.6,2.8,-5.4], look:[-0.6,1.3,-12], dur:2},
       {t:'read', ref:'MARK 5:38'},

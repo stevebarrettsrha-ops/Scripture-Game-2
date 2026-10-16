@@ -35,6 +35,13 @@
      birds   0..1  traveller (a kilometre and more), so a scene that tells of their making
                    asks for them here — cattle, creeping things and the beasts of the earth
                    stood about the anchor, and birds wheeling over it
+     traders 0..1  the merchantmen of a later age, which a scene has none of unless it asks
+     bush    0..1  THE THINGS THE VERSES NAME, which the world has none of (see `makers`): the
+     waters  0..1  bush (at a half a bush and no more; above it, burning by the dial), the sea
+     ark     0..1  stood up in two walls with dry ground between (as high as the dial), the ark,
+     cave    0..1  the cave in a rock, the garden planted (its trees growing by the dial) and
+     garden  0..1  the river that went out of it (filling its bed by the dial)
+     river   0..1
      far     0..1  THE COARSE CARPET, and a scene must ASK for it — see below
      hour    0..24 THE HOUR OF THE DAY at the place the scene is staged, and
                    the one dial here that reaches past the dressing into the
@@ -47,9 +54,9 @@
 
    THE EYE, on the same track:
      cd  how far the eye stands from the anchor
-     cy  how high above the water
+     cy  how high above the ground at the anchor (above the water while the land is sunk)
      ca  swung round the anchor, in turns (0..1 is the whole circle)
-     cl  how high it looks
+     cl  how high it looks, from the same ground
      cfov the lens
    Everything between two keys is eased, so nothing ever snaps — unless the
    key says cut:true, and then it simply IS there.                          */
@@ -61,6 +68,7 @@ window.STAGE=(function(){
 
   const DEFAULT={ dark:0, light:1, sky:null, sun:1, moon:1, stars:1, firm:0,
     land:1, sea:1, clouds:1, lifeSea:1, lifeAir:1, lifeLand:1, ship:0, man:0, beasts:0, birds:0,
+    traders:0, bush:0, waters:0, ark:0, cave:0, garden:0, river:0,
     far:0, hour:null, fogN:null, fogF:null,
     cd:120, cy:40, ca:0, cl:10, cfov:62, cut:false };
 
@@ -153,6 +161,11 @@ window.STAGE=(function(){
   const _c=new T.Color();
   /* the ground's top at a place of the world */
   function groundY(x,z){ const c=W.landAtWorld(x,z); return c?c.h*W.B:W.WATER_Y; }
+  /* the same, eased between the middles of the blocks, so an eye kept off it does not jump a
+     block's height each time it passes over the edge of one */
+  function groundAt(x,z){ const B=W.B, fx=x/B-0.5, fz=z/B-0.5, i=Math.floor(fx), k=Math.floor(fz), u=fx-i, v=fz-k;
+    const g=(a,b)=>groundY((a+0.5)*B,(b+0.5)*B);
+    return (g(i,k)*(1-u)+g(i+1,k)*u)*(1-v)+(g(i,k+1)*(1-u)+g(i+1,k+1)*u)*v; }
   /* THE MAN, stood on the ground a few steps before the anchor, turned to the eye */
   function standMan(){
     if(!held.manAt) held.manAt={parent:W.walkerG.parent,pos:W.walkerG.position.clone(),rot:W.walkerG.rotation.y};
@@ -173,13 +186,233 @@ window.STAGE=(function(){
     function spawnAir(){ air=[]; const k=K(); if(!k||!k.makeBird) return;
       AIR.forEach((kind,i)=>{ let m=null; try{ m=k.makeBird(kind); }catch(e){} if(!m) return;
         W.scene.add(m); air.push({m,a:i*0.9,r:50+i*11,h:40+((i*7)%4)*12,sp:0.25+(i%3)*0.08}); }); }
-    function drop(){ for(const L of [land,air]) if(L) for(const b of L) if(b.m.parent) b.m.parent.remove(b.m); land=null; air=null; }
+    function drop(){ for(const L of [land,air]) if(L) for(const b of L) if(b.m.parent) b.m.parent.remove(b.m); land=null; air=null; dropProps(); }
     function tick(d){ const now=performance.now(), dt=Math.min(0.1,(now-t0)/1000); t0=now;
       if(d.beasts>0.5&&!land) spawnLand(); else if(d.beasts<=0.5&&land){ for(const b of land) W.scene.remove(b.m); land=null; }
       if(d.birds>0.5&&!air) spawnAir(); else if(d.birds<=0.5&&air){ for(const b of air) W.scene.remove(b.m); air=null; }
       if(land&&K().tickGait) for(const b of land){ try{ K().tickGait(b.ent,b.kind,0,dt); }catch(e){} }
       if(air) for(const b of air){ b.a+=dt*b.sp; const x=anchor.x+Math.cos(b.a)*b.r, z=anchor.z+Math.sin(b.a)*b.r;
-        b.m.position.set(x,groundY(anchor.x,anchor.z)+b.h,z); b.m.rotation.y=-b.a; } }
+        b.m.position.set(x,groundY(anchor.x,anchor.z)+b.h,z); b.m.rotation.y=-b.a; }
+      tickProps(d); }
+
+    /* ---- AND THE THINGS THE VERSES NAME ----
+       The world has no bush that burns and is not consumed, no sea stood up in two walls, no ark, no
+       cave in a rock and no garden planted, and the films said as much in their headers and showed
+       an empty shore while the verse was read. Each is a dial here, as the beasts are: raised when
+       its dial comes up off nothing, taken down when it goes back to nothing, and every one taken out
+       of the world when the world is given back, so that not one is left standing in it after a film.
+       They are set by the ANCHOR and the EYE, never at a place in the world's own numbers, because the
+       shore a film is staged on is found when it is played; and by the eye as it stood when the dial
+       came up, read back off the track, so a film sought into its middle builds them where playing it
+       through would have. All are made to the measure of the man and the beasts. */
+    const MAKE={}, EASE={}, up={}, M=()=>W.U_PER_M||6;
+    /* (a thing that cannot be made is left out, and the film plays on without it) */
+    function tickProps(d){
+      for(const k in MAKE){ const v=+d[k]||0;
+        if(v>0.004&&!up[k]){ const g=new T.Group(); try{ MAKE[k](g); }catch(e){ g.userData.broken=true; } W.scene.add(g); up[k]=g; }
+        else if(v<=0.004&&up[k]) putAway(k);
+        if(up[k]&&EASE[k]&&!up[k].userData.broken) EASE[k](up[k],v); } }
+    function putAway(k){ const g=up[k]; delete up[k]; if(g.parent) g.parent.remove(g);
+      g.traverse(o=>{ if(o.geometry&&!o.isSprite) o.geometry.dispose(); if(o.isInstancedMesh) o.dispose(); });
+      /* the lamp put out exactly as the torch's own tick puts it out */
+      if(g.userData.lit&&K()&&K().lamp) K().lamp(0,-1e7,0,0); }
+    function dropProps(){ for(const k in up) putAway(k); }
+    let MT=null;
+    function mats(){ if(MT) return MT;
+      const L=(c,o)=>new T.MeshLambertMaterial(Object.assign({color:c},o||{}));
+      const cv=document.createElement('canvas'); cv.width=cv.height=64;
+      const c2=cv.getContext('2d'), gr=c2.createRadialGradient(32,32,0,32,32,32);
+      gr.addColorStop(0,'rgba(255,240,200,1)'); gr.addColorStop(0.3,'rgba(255,190,90,0.7)'); gr.addColorStop(1,'rgba(255,140,40,0)');
+      c2.fillStyle=gr; c2.fillRect(0,0,64,64);
+      MT={ stem:L(0x5b4630), leaf:L(0x55702f), leaf2:L(0x41602a), fruit:L(0xb8432e), gold:L(0xd9a63a),
+        flame:new T.MeshBasicMaterial({color:0xffa640,transparent:true,opacity:0.85,blending:T.AdditiveBlending,depthWrite:false}),
+        glow:new T.SpriteMaterial({map:new T.CanvasTexture(cv),color:0xffc070,transparent:true,depthWrite:false,blending:T.AdditiveBlending}),
+        rock:L(0x8a8174), rock2:L(0x6f675c), mouth:new T.MeshBasicMaterial({color:0x090706}), sand:L(0x9d8a66),
+        wall:L(0x2d7290,{transparent:true,opacity:0.6,emissive:0x0b2a36}), crest:L(0xd6e8ee,{transparent:true,opacity:0.75}),
+        river:L(0x3a7f9a,{emissive:0x0a2430}),
+        pitch:L(0x241c15), gopher:L(0x7b5634), strake:L(0x553a22), dark:new T.MeshBasicMaterial({color:0x0d0a08}) };
+      return MT; }
+    /* a block of the thing, its foot at y, in the group's own frame */
+    function blk(g,w,h,dp,x,y,z,m){ const b=new T.Mesh(new T.BoxGeometry(w,h,dp),m); b.position.set(x,y+h/2,z); g.add(b); return b; }
+    /* many blocks of one stuff in ONE drawing (a garden is some hundreds of them): each is
+       {bx,by,bz} the foot of what it belongs to, {x,y,z} its own foot from there, {w,h,d}, `ry` its
+       turn — and is drawn grown `s` of the way out of that foot (a fruit, `ripe`, only at the last) */
+    const _m4=new T.Matrix4(), _q=new T.Quaternion(), _p=new T.Vector3(), _s=new T.Vector3(), _Y=new T.Vector3(0,1,0);
+    function many(g,list,m){ const im=new T.InstancedMesh(new T.BoxGeometry(1,1,1),m,Math.max(1,list.length));
+      im.count=list.length; im.frustumCulled=false; im.userData.list=list; place(im,null); g.add(im); return im; }
+    function place(im,sf){ const L=im.userData.list;
+      for(let i=0;i<L.length;i++){ const b=L[i], s=sf?sf(b):1, z=Math.max(0.001,b.ripe?(s-0.7)/0.3:s);
+        _p.set(b.bx+b.x*s,b.by+(b.y+b.h/2)*s,b.bz+b.z*s); _s.set(b.w*z,b.h*z,b.d*z); _q.setFromAxisAngle(_Y,b.ry||0);
+        im.setMatrixAt(i,_m4.compose(_p,_q,_s)); }
+      im.instanceMatrix.needsUpdate=true; }
+    const dry=(x,z)=>!!W.landAtWorld(x,z);
+    /* is the ground dry under the whole of a footprint (L along u, Wd across it), and how high it lies */
+    function under(cx,cz,ux,uz,L,Wd){ let ok=true, lo=1e9, hi=-1e9;
+      for(let i=-2;i<=2;i++) for(let j=-1;j<=1;j++){ const x=cx+ux*L*i/4+uz*Wd*j/2, z=cz+uz*L*i/4-ux*Wd*j/2;
+        if(!dry(x,z)) ok=false; const g=groundY(x,z); if(g<lo) lo=g; if(g>hi) hi=g; }
+      return {ok,lo,hi}; }
+    /* the eye as it stood when this dial came up off nothing: (fx,fz) the way to it from the anchor */
+    function eyeAt(k){ let s=Math.min(t,dur()); while(s>0&&at(s-0.25)[k]>0.004) s-=0.25;
+      const d0=at(Math.max(0,s)), a=d0.ca*Math.PI*2, fx=Math.sin(a), fz=Math.cos(a);
+      return {fx,fz,x:anchor.x+fx*d0.cd,z:anchor.z+fz*d0.cd}; }
+    /* the way down to the sea from the anchor — the bearings nearest (px,pz) tried first, or every
+       bearing alike with `all` — and how far off its edge lies, where the water goes on open beyond
+       it; null with no such water within a kilometre and more */
+    function seaward(px,pz,all){ const b0=Math.atan2(px,pz);
+      for(const span of all?[Math.PI]:[Math.PI/3,Math.PI]){ let best=null;
+        for(let j=0;j<=48;j++){ const b=b0+(j&1?1:-1)*Math.ceil(j/2)/24*span, ux=Math.sin(b), uz=Math.cos(b); let r0=-1;
+          for(let r=0;r<=1400;r+=12) if(!dry(anchor.x+ux*r,anchor.z+uz*r)){ r0=r; break; }
+          if(r0<0) continue;
+          /* the edge found to within a unit, or a dozen bearings tie and the nearest is not the one taken */
+          for(let lo=r0-12,i=0;i<4&&r0>0;i++){ const h=(lo+r0)/2; if(dry(anchor.x+ux*h,anchor.z+uz*h)) lo=h; else r0=h; }
+          if(best&&r0>=best.r0) continue;
+          let open=true; for(let r=r0+40;r<=r0+280;r+=40) if(dry(anchor.x+ux*r,anchor.z+uz*r)) open=false;
+          if(open) best={ux,uz,r0}; }
+        if(best) return best; }
+      return null; }
+    /* the first of these stations ([across the eye's line, toward the eye]) with dry ground under the
+       whole footprint, or the first of them if none has */
+    function station(e,list,L,Wd){
+      const at2=(l,s)=>[anchor.x+e.fz*l+e.fx*s,anchor.z-e.fx*l+e.fz*s];
+      for(const [l,s] of list){ const [x,z]=at2(l,s), f=under(x,z,e.fx,e.fz,L,Wd); if(f.ok) return {x,z,f}; }
+      const [x,z]=at2(list[0][0],list[0][1]); return {x,z,f:under(x,z,e.fx,e.fz,L,Wd)}; }
+
+    /* THE BUSH (Shemoth 3:2): a thorn-bush of the wilderness, of blocks, about a man's height, a few
+       steps to one side of the anchor. At a half on its dial a bush and no more; above that a fire in
+       the midst of it by the dial — tongues of flame, a glow, and the world's own lamp lit there to
+       throw it on the ground — and not one leaf of it burned, for the bush was not consumed. */
+    MAKE.bush=g=>{ const m=M(), mt=mats(), e=eyeAt('bush'), st=station(e,[[16,-4],[-16,-4],[26,-8],[-26,-8]],2.6*m,2.6*m);
+      g.position.set(st.x,groundY(st.x,st.z),st.z);
+      for(let i=0;i<3;i++) blk(g,0.16*m,0.7*m,0.16*m,(i-1)*0.4*m,0,((i*2)%3-1)*0.25*m,mt.stem);
+      for(let i=0;i<16;i++){ const a=i*2.4, r=(0.15+0.8*((i*7)%16)/16)*m, y=(0.25+0.85*((i*11)%16)/16)*m*(1-r/(2.4*m));
+        blk(g,0.5*m,0.45*m,0.5*m,Math.cos(a)*r,y,Math.sin(a)*r,i%3?mt.leaf:mt.leaf2); }
+      g.userData.tongues=[];
+      for(let i=0;i<6;i++){ const a=i*1.9+0.5, r=(i%3)*0.22*m, f=new T.Mesh(new T.BoxGeometry(0.22*m,1,0.22*m).translate(0,0.5,0),mt.flame);
+        f.position.set(Math.cos(a)*r,(0.35+(i%2)*0.3)*m,Math.sin(a)*r); g.add(f); g.userData.tongues.push(f); }
+      const sp=new T.Sprite(mt.glow); sp.position.y=m; sp.scale.set(3.6*m,3.6*m,1); g.add(sp); g.userData.glow=sp; };
+    EASE.bush=(g,v)=>{ const f=Math.max(0,Math.min(1,(v-0.5)*2)), s=performance.now()/1000, m=M(), on=f>0.01;
+      g.userData.tongues.forEach((q,i)=>{ q.visible=on; q.scale.y=Math.max(0.01,f*(0.9+0.45*Math.sin(s*(8+i*1.7)+i*2.1))*m); });
+      g.userData.glow.visible=on; mats().glow.opacity=f*(0.8+0.2*Math.sin(s*11.3)*Math.sin(s*4.7));
+      if(on&&K()&&K().lamp){ K().lamp(g.position.x,g.position.y+m,g.position.z,0.6*f*(0.86+0.14*Math.sin(s*11.3))); g.userData.lit=true; } };
+
+    /* THE SEA GONE BACK (Shemoth 14:21-22): from the water's edge straight out to sea, a lane of dry
+       ground, and the waters a wall on the right hand and on the left — stood up as the dial comes up,
+       and let fall as it goes down again, when the sea returned to its usual flow (14:27-28). The
+       floor of the lane is laid just over the face of the sea, so the sea is not seen across it. */
+    MAKE.waters=g=>{ const m=M(), mt=mats(), e=eyeAt('waters'), sw=seaward(-e.fx,-e.fz)||{ux:-e.fx,uz:-e.fz,r0:0};
+      const lane=30*m, wt=20*m, Lz=1100, unit=()=>new T.BoxGeometry(1,1,1).translate(0,0.5,0);
+      g.position.set(anchor.x+sw.ux*sw.r0,0,anchor.z+sw.uz*sw.r0); g.rotation.y=Math.atan2(sw.ux,sw.uz);
+      const fl=new T.Mesh(unit(),mt.sand); fl.scale.set(lane,40,Lz+40); fl.position.z=Lz/2-20; g.add(fl);
+      Object.assign(g.userData,{floor:fl,walls:[],crests:[],wt,Lz});
+      for(const sd of [-1,1]){ const w=new T.Mesh(unit(),mt.wall), c=new T.Mesh(unit(),mt.crest);
+        w.position.set(sd*(lane+wt)/2,W.WATER_Y-40,Lz/2); c.position.set(w.position.x,0,Lz/2); c.scale.set(wt,0.6*m,Lz);
+        g.add(w); g.add(c); g.userData.walls.push(w); g.userData.crests.push(c); } };
+    EASE.waters=(g,v)=>{ const u=g.userData, H=22*M()*v;
+      u.floor.position.y=W.WATER_Y-44+8.5*Math.min(1,v*3);          /* (over the crest of a calm sea's tallest wave) */
+      for(const w of u.walls){ w.scale.set(u.wt,40+H,u.Lz); w.visible=v>0.02; }
+      for(const c of u.crests){ c.position.y=W.WATER_Y+H; c.visible=v>0.05; } };
+
+    /* THE ARK (Bereshith 6:14-16; Yashar 6:1): gopher wood pitched within and without, three hundred
+       cubits long, fifty broad and thirty high — 157 by 26 by 16 metres at a cubit of 0.523 — with its
+       three decks, the opening of a cubit under the roof, and the door set in its side, on the side
+       the eye is. It is laid along the shore on the first dry ground inland of the anchor that will
+       hold the whole of it, and it wants a wide shot: the eye three quarters of a kilometre off, not
+       the hundred metres a man is framed in. */
+    MAKE.ark=g=>{ const m=M(), mt=mats(), cub=0.523*m, L=300*cub, Wd=50*cub, H=30*cub, e=eyeAt('ark');
+      const sw=seaward(-e.fx,-e.fz,true)||{ux:-e.fx,uz:-e.fz}, ax=sw.uz, az=-sw.ux;      /* the keel, along the shore */
+      let c=null;
+      for(const sd of [40,90,140,200,260,330,400,480]){ const x=anchor.x-sw.ux*sd, z=anchor.z-sw.uz*sd, f=under(x,z,ax,az,L,Wd);
+        if(!c||f.ok){ c={x,z,f}; if(f.ok) break; } }
+      const base=c.f.hi; g.position.set(c.x,base,c.z); g.rotation.y=Math.atan2(ax,az);
+      if(base-c.f.lo>0.3) blk(g,Wd*0.7,base-c.f.lo+m,L*0.92,0,c.f.lo-m-base,0,mt.strake);   /* her stocks, where the ground falls away */
+      blk(g,Wd,H*0.42,L,0,0,0,mt.pitch);
+      blk(g,Wd,H*0.43,L,0,H*0.42,0,mt.gopher);
+      for(const y of [H*0.3,H*0.6]) blk(g,Wd+0.3*m,0.4*m,L+0.3*m,0,y,0,mt.strake);       /* lower, second and third decks */
+      blk(g,Wd*0.92,cub,L*0.97,0,H*0.85,0,mt.dark);                                      /* "in a cubit shall you finish it above" */
+      blk(g,Wd*1.06,H*0.15-cub,L*1.01,0,H*0.85+cub,0,mt.gopher);
+      const sd=Math.sign((e.x-c.x)*az-(e.z-c.z)*ax)||1;
+      blk(g,0.6*m,4.6*m,3.8*m,sd*(Wd/2+0.2*m),0.4*m,L*0.18,mt.dark); };
+
+    /* THE CAVE OF TREASURES ("a cave in a rock", Adam and Hawwah 1, 1:9): a knoll of grey stone some
+       fifteen metres across stood a little beyond the anchor, where the eye is looking, built of the
+       world's own blocks one upon another — each stone its own shade, as the hills about it are — and
+       sunk a block into the ground under every column of it, so it rises out of the land and does not
+       sit on it. The dark of its mouth is turned to the eye: a doorway of the height of a man and a
+       little more, a lintel of the rock over it, and the dark going back into the hill behind. */
+    MAKE.cave=g=>{ const m=M(), mt=mats(), e=eyeAt('cave'), b=W.B,
+        st=station(e,[[0,-30],[0,-45],[24,-30],[-24,-30],[34,-12],[-34,-12]],12*m,15*m);
+      const ry=Math.atan2(e.x-st.x,e.z-st.z), cs=Math.cos(ry), sn=Math.sin(ry), y0=st.f.lo-0.6*m;
+      g.position.set(st.x,y0,st.z); g.rotation.y=ry;
+      const RX=7.5*m, RZ=5.5*m, H=6.5*m, CZ=-4*m, front=CZ+RZ, MW=1.3*m, MH=2.6*m, MD=4.4*m;
+      const hs=(i,j)=>{ const q=Math.sin(i*127.1+j*311.7)*43758.5453; return q-Math.floor(q); };
+      const gAt=(x,z)=>groundY(st.x+x*cs+z*sn,st.z-x*sn+z*cs)-y0;          /* the ground under (x,z) of the knoll */
+      const stones=[], shade=[], scrub=[], SH=[0x8a8174,0x7d7468,0x6f675c,0x958b7c,0x625b51,0x837a6c];
+      const gm=gAt(0,front);
+      for(let i=-Math.ceil(RX/b);i<=Math.ceil(RX/b);i++) for(let j=-Math.ceil(RZ/b);j<=Math.ceil(RZ/b);j++){
+        const x=i*b, z=CZ+j*b, r=Math.hypot(x/RX,(z-CZ)/RZ); if(r>1) continue;
+        const gy=Math.floor(gAt(x,z)/b)*b-b;
+        let top=Math.round((st.f.hi-y0+H*Math.pow(1-r*r,0.6)*(0.8+0.32*hs(i,j)))/b)*b;
+        if(top<gy+2*b) top=gy+2*b;
+        /* the doorway: the columns in it are open from the ground to the lintel, and the lintel kept
+           only where the rock stands a block and more over it */
+        const door=Math.abs(x)<MW&&z>front-MD;
+        for(let y=gy;y<top;y+=b){
+          if(door&&y+b>gy+b&&y<gm+MH) continue;
+          stones.push({bx:0,by:0,bz:0,x,y,z,w:b,h:b,d:b}); shade.push(SH[Math.floor(hs(i*7+y,j*3-y)*SH.length)]); }
+        if(!door&&r<0.85&&hs(j,i)<0.13) scrub.push({bx:0,by:0,bz:0,x,y:top,z,w:0.7*b,h:0.5*b,d:0.7*b}); }
+      for(const [x,z,s] of [[2.6,2.4,1],[-3.4,2.9,0.8],[4.2,0.6,0.7],[-5.1,1.0,1.1]]){ const k=stones.length;
+        stones.push({bx:0,by:0,bz:0,x:x*m,y:Math.floor(gAt(x*m,z*m)/b)*b,z:z*m,w:s*b,h:s*b*0.8,d:s*b*1.1,ry:k}); shade.push(SH[k%SH.length]); }
+      const ri=mt.rockI||(mt.rockI=new T.MeshLambertMaterial({color:0xffffff})), im=many(g,stones,ri), cl=new T.Color();
+      shade.forEach((c,i)=>im.setColorAt(i,cl.setHex(c))); if(im.instanceColor) im.instanceColor.needsUpdate=true;
+      if(scrub.length) many(g,scrub,mt.leaf2);
+      /* the dark within: from a block inside the doorway back into the hill */
+      blk(g,2*MW+0.2*m,MH+0.6*m,MD-b,0,gm-0.4*m,front-b-(MD-b)/2,mt.mouth); };
+
+    /* THE RIVER that went out of Ĕḏen to water the garden (Bereshith 2:10): down from inland to the
+       sea along the nearest way to it, passing the anchor to one side, laid on the ground a stretch at
+       a time so it steps down with the land; it fills its bed by the dial. Its line is found once for
+       an anchor, so the garden can keep its trees out of it before it runs. */
+    let RL=null, RLa=null;
+    function riverLine(){ if(RLa===anchor) return RL; RLa=anchor;
+      const sw=seaward(0,1,true); RL=sw?{ux:sw.ux,uz:sw.uz,ox:sw.uz*44,oz:-sw.ux*44}:null; return RL; }
+    MAKE.river=g=>{ const m=M(), mt=mats(), rv=riverLine(), list=[]; g.position.set(anchor.x,0,anchor.z);
+      if(rv){ let r=0; while(r<1400&&dry(anchor.x+rv.ox+rv.ux*r,anchor.z+rv.oz+rv.uz*r)) r+=6;
+        for(let j=0;j<64;j++){ const q=r-6-j*12, x=rv.ox+rv.ux*q, z=rv.oz+rv.uz*q;
+          if(!dry(anchor.x+x,anchor.z+z)) continue;
+          list.push({bx:0,by:0,bz:0,x,y:groundY(anchor.x+x,anchor.z+z)+0.5-W.B,z,w:5*m,h:W.B,d:12.5,ry:Math.atan2(rv.ux,rv.uz)}); } }
+      many(g,list,mt.river); };
+    EASE.river=(g,v)=>{ g.position.y=(v-1)*W.B; };
+
+    /* THE GARDEN PLANTED (Bereshith 2:8-9): trees pleasant to the sight and good for food, set about
+       the anchor wherever the ground is dry, out of the river's bed, and where no line from the eye to
+       the man passes through one — every eye the scene will have while the garden stands is read off
+       the track first — and in the midst, behind the man, the tree of life and the tree of knowing.
+       They GROW by the dial, out of the ground, as the verse says they were made to. */
+    MAKE.garden=g=>{ const m=M(), mt=mats(), eyes=[], rv=riverLine(); let mx=0, mz=0;
+      for(let s=0;s<=dur();s+=1){ const d=at(s); if(!(d.garden>0.004)) continue; const a=d.ca*Math.PI*2;
+        eyes.push([Math.sin(a)*d.cd,Math.cos(a)*d.cd]); mx+=Math.sin(a); mz+=Math.cos(a); }
+      const ml=Math.hypot(mx,mz)||1; mx/=ml; mz/=ml;                    /* the eye's way from the anchor, on the whole */
+      const clear=(x,z,R)=>{ if(Math.hypot(x,z)<R+10||!dry(anchor.x+x,anchor.z+z)) return false;
+        if(rv&&Math.abs((x-rv.ox)*rv.uz-(z-rv.oz)*rv.ux)<R+3*m) return false;
+        for(const [ex,ez] of eyes){ const u=Math.max(0,Math.min(1,(x*ex+z*ez)/(ex*ex+ez*ez||1)));
+          if(Math.hypot(x-ex*u,z-ez*u)<R+6) return false; }
+        return true; };
+      const B={stem:[],leaf:[],leaf2:[],fruit:[],gold:[]}; let n=0;
+      const tree=(x,z,sz,gold)=>{ const k=n++, by=groundY(anchor.x+x,anchor.z+z), th=(2.2+sz)*m, cw=(2.6+sz*0.9)*m, tw=0.45*m*(0.8+sz*0.25), o={bx:x,by,bz:z,k};
+        B.stem.push(Object.assign({x:0,y:0,z:0,w:tw,h:th+0.6*m,d:tw},o));
+        for(let j=0;j<7;j++){ const a=j*0.9+k, r=j?cw*0.32:0;
+          B[(j+k)%3?'leaf':'leaf2'].push(Object.assign({x:Math.cos(a)*r,y:th-0.3*m+(j?((j*5)%3)*0.35*m:0.7*m),z:Math.sin(a)*r,w:cw*0.55,h:1.3*m,d:cw*0.55},o)); }
+        for(let j=0;j<5;j++){ const a=j*1.3+k*0.7;
+          B[gold?'gold':'fruit'].push(Object.assign({x:Math.cos(a)*cw*0.5,y:th+0.2*m+(j%2)*0.6*m,z:Math.sin(a)*cw*0.5,w:0.3*m,h:0.3*m,d:0.3*m,ripe:true},o)); } };
+      const rad=sz=>0.6*(2.6+sz*0.9)*m;                                    /* the reach of its crown */
+      for(const sd of [-1,1]){ const x=-mx*32+mz*14*sd, z=-mz*32-mx*14*sd; if(clear(x,z,rad(2.6))) tree(x,z,2.6,sd>0); }
+      for(let i=0;i<120&&n<26;i++){ const a=i*2.39996, r=40+((i*53)%23)/23*170, sz=((i*7)%4)*0.45;
+        if(clear(Math.sin(a)*r,Math.cos(a)*r,rad(sz))) tree(Math.sin(a)*r,Math.cos(a)*r,sz,false); }
+      g.position.set(anchor.x,0,anchor.z);
+      g.userData.ims=[many(g,B.stem,mt.stem),many(g,B.leaf,mt.leaf),many(g,B.leaf2,mt.leaf2),many(g,B.fruit,mt.fruit),many(g,B.gold,mt.gold)];
+      g.userData.n=n; g.userData.v=-1; };
+    EASE.garden=(g,v)=>{ if(g.userData.v===v) return; g.userData.v=v; const n=Math.max(1,g.userData.n);
+      for(const im of g.userData.ims) place(im,b=>Math.max(0,Math.min(1,v*1.6-0.6*b.k/n))); };
     return {tick,drop};
   })();
   /* HOW FAR THE GROUND IS SUNK when the dry land has not yet appeared. Deep
@@ -299,6 +532,12 @@ window.STAGE=(function(){
     }
     /* ---- and neither ship nor man is in the world before its time ---- */
     W.boatG.visible=d.ship>0.5;
+    /* ---- nor the merchantmen of a later age ----
+       The world's own tick sets the passing galleons out about whoever is at sea, every frame, and
+       they were put away only before the sixth day: a pale three-master stood on the horizon of the
+       garden and sailed on through the days after it. They are put away every frame now, AFTER the
+       world has set them out, unless a scene asks for them. */
+    if(!(d.traders>0.5)) W.hideTraders();
     W.walkerG.visible=d.man>0.5;
     if(d.man>0.5) standMan();
     makers.tick(d);
@@ -318,10 +557,21 @@ window.STAGE=(function(){
       }
       W.setLocalHour(d.hour,anchor.x,anchor.z);
     }
-    /* ---- and the eye itself ---- */
-    const a=d.ca*Math.PI*2;
-    W.camera.position.set(anchor.x+Math.sin(a)*d.cd, d.cy, anchor.z+Math.cos(a)*d.cd);
-    W.camera.lookAt(anchor.x,d.cl,anchor.z);
+    /* ---- and the eye itself ----
+       ITS HEIGHT IS TAKEN FROM THE GROUND AT THE ANCHOR, NOT FROM THE SEA. The keys were written for
+       a scene staged at the water's edge; staged a way up a wild beach, the ground there stands a
+       block over the sea and the ground the eye stands over higher yet, so an eye eighteen "up" was
+       a metre off the sand and its line of sight went into the dune half way to what it looked at.
+       While the dry land is sunk there is no ground to take it from, and the water-level shots of the
+       first days are left exactly as they were; as the land rises the eye rises with it. And whatever
+       a key asks, the eye is kept a man's height and more off the ground under it, and the line from
+       it to what it looks at kept off the ground half way. */
+    const a=d.ca*Math.PI*2, ex=anchor.x+Math.sin(a)*d.cd, ez=anchor.z+Math.cos(a)*d.cd;
+    const sunk=SINK*(1-lf), g0=Math.max(0,groundY(anchor.x,anchor.z)-W.WATER_Y)*lf, ly=d.cl+g0;
+    let ey=Math.max(d.cy+g0,Math.max(W.WATER_Y,groundAt(ex,ez)-sunk)+W.B*1.5);
+    { const gm=Math.max(W.WATER_Y,groundAt((ex+anchor.x)/2,(ez+anchor.z)/2)-sunk)+W.B; if((ey+ly)/2<gm) ey=2*gm-ly; }
+    W.camera.position.set(ex,ey,ez);
+    W.camera.lookAt(anchor.x,ly,anchor.z);
     if(Math.abs(W.camera.fov-d.cfov)>0.01){ W.camera.fov=d.cfov; W.camera.updateProjectionMatrix(); }
   }
 

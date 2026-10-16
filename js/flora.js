@@ -297,10 +297,10 @@ function fruitOn(kit,K,x,z,y0,y1,r,S){
    stem, which are not a bole in the sense an axe means — are left as geometry
    and are named in AUDIT Round 61 rather than quietly missed.
 
-   ---- AND IT IS NOT SWITCHED ON, FOR A REASON THE TEST FOUND ----
-   The door is built and the tree is not yet sent through it. Two things came
-   out of trying it, and both are about WHEN a stamp lands rather than whether
-   it works:
+   ---- AND IT WAS NOT SWITCHED ON AT FIRST, FOR A REASON THE TEST FOUND ----
+   In Round 61 the door was built and the tree not yet sent through it. Two
+   things came out of trying it, and both are about WHEN a stamp lands rather
+   than whether it works:
 
    1. THE FIRST BUILD OF EVERY CHUNK WOULD BE TRUNKLESS. `buildChunk` gathers
       the chunk's edits ONCE at the top and then meshes; a bole stamped during
@@ -315,8 +315,8 @@ function fruitOn(kit,K,x,z,y0,y1,r,S){
       bark to `log` on purpose — "to the pick they are all log" — and that is
       right for BREAKING and is a real loss to the EYE.
 
-   Neither is a reason not to do it; both are reasons it is a round of its own
-   and not a line. The stamp wants to run BEFORE the chunk gathers its edits —
+   Neither was a reason not to do it; both made it a round of its own, and
+   not a line. The stamp wants to run BEFORE the chunk gathers its edits —
    a pass over the columns that grow trees, which the builder already walks —
    and the bark wants either a Timber block per bark pattern (six more blocks,
    and a stack of timber that no longer stacks) or a tint the block table has
@@ -845,8 +845,8 @@ window.FLORA={
   barkOf:n=>{ const K=D.kinds[n]; return K?K._bark:null; },
   barkOn:v=>{ if(v!==undefined) BARK=!!v; return BARK; },
   barkKinds:()=>BARK_MAT,
-  /* the boles as blocks: built, measured, and not yet switched on — see the
-     note beside `bole` and AUDIT Round 61 */
+  /* the boles as blocks: ON since Round 86 (test 43 green); the switch is kept
+     for the A/B — see the note beside `bole`, and AUDIT Rounds 61 and 86 */
   boleBlocks:v=>{ if(v!==undefined) BOLE_BLOCKS=!!v; return BOLE_BLOCKS; },
   /* the four grey things everything in the world is drawn with. The engine
      mints them; this file only ever names them. */

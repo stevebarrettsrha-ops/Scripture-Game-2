@@ -66,8 +66,9 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     return m; }
   function tower(x,z,w,d,h,col){ const y=gY(x,z); api.box(x-w/2,foot(x-w/2,z-d/2,x+w/2,z+d/2)-2,z-d/2,x+w/2,y+h,z+d/2,col||LIME); }
   /* columns along a line, every `step` metres, from y0 up h */
+  /* (`y0` null: each column on its own ground; every column footed down to the land) */
   function columns(x0,z0,x1,z1,y0,h,step,col){ const L=Math.hypot(x1-x0,z1-z0), n=Math.max(1,Math.round(L/step));
-    for(let k=0;k<=n;k++){ const x=x0+(x1-x0)*k/n, z=z0+(z1-z0)*k/n; api.box(x-0.7,y0,z-0.7,x+0.7,y0+h,z+0.7,col||WHITE); } }
+    for(let k=0;k<=n;k++){ const x=x0+(x1-x0)*k/n, z=z0+(z1-z0)*k/n, yb=y0===null?gY(x,z):y0; api.box(x-0.7,yb,z-0.7,x+0.7,yb+h,z+0.7,col||WHITE,{foot:true}); } }
   /* houses in a block of the city, on the ground where each stands (some six hundred of them in all:
      the city held tens of thousands, and the rest of her are for a later round, drawn far off) */
   function quarter(x0,z0,x1,z1,pitch,keep){ const list=[];
@@ -86,10 +87,10 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     const N=-267, S=220, xw=z=>-132+(z-N)/(S-N)*4, xe=z=>183-(z-N)/(S-N)*31;
     for(let z=N;z<S;z+=8){ const z1=Math.min(S,z+8); api.pad(xw(z),z,xe(z1),z1,{y:PY,fill:'hewn-stone',top:'cobble',blend:0}); }
     /* the parapet about its edge */
-    for(let z=N;z<S;z+=4){ api.box(xw(z)-1,PY,z,xw(z),PY+1.4,z+4,LIME); api.box(xe(z),PY,z,xe(z)+1,PY+1.4,z+4,LIME); }
+    for(let z=N;z<S;z+=4){ api.box(xw(z)-1,PY,z,xw(z),PY+1.4,z+4,LIME,{foot:true}); api.box(xe(z),PY,z,xe(z)+1,PY+1.4,z+4,LIME,{foot:true}); }
     /* THE PORCHES of the court of the nations: double colonnades 15 m deep along west, north and
        east (Shelomoh's porch the eastern, Yahuchanon 10:23), their roofs 13 m up */
-    for(let z=N+15;z<186;z+=5){ api.box(xw(z),PY,z,xw(z)+1.2,PY+13,z+5,LIME); api.box(xe(z)-1.2,PY,z,xe(z),PY+13,z+5,LIME); }
+    for(let z=N+15;z<186;z+=5){ api.box(xw(z),PY,z,xw(z)+1.2,PY+13,z+5,LIME,{foot:true}); api.box(xe(z)-1.2,PY,z,xe(z),PY+13,z+5,LIME,{foot:true}); }
     columns(xw(N)+6,N+15,xw(186)+6,186,PY,12.5,5); columns(xw(N)+11,N+15,xw(186)+11,186,PY,12.5,5);
     columns(xe(N)-6,N+15,xe(186)-6,186,PY,12.5,5); columns(xe(N)-11,N+15,xe(186)-11,186,PY,12.5,5);
     api.box(xw(N),PY+12.5,N,xw(N)+15,PY+13.5,186,TIMBER); api.box(xe(N)-15,PY+12.5,N,xe(N),PY+13.5,186,TIMBER);
@@ -105,9 +106,9 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     api.box(rw,PY+16,RS0+11.5,re,PY+30,RS0+12.5,LIME); api.box(rw,PY+16,RS0+20.5,re,PY+30,RS0+21.5,LIME);   /* the clerestory */
     api.box(rw,PY+30,RS0+11.5,re,PY+31.2,RS0+21.5,TIMBER);
     /* the stair up from the street at the south-west corner, over the great arch */
-    for(let s=0;s<24;s++) api.box(rw-14-s*1.2,PY-1-s*0.9,RS0+2,rw-13-s*1.2+1.2,PY-s*0.9,RS0+15,STONE);
+    for(let s=0;s<24;s++) api.box(rw-14-s*1.2,PY-1-s*0.9,RS0+2,rw-13-s*1.2+1.2,PY-s*0.9,RS0+15,STONE,{foot:true});
     /* the gates of Ḥuldah in the south wall, and the broad steps up to them from the city */
-    for(const gx of [-55,25]) for(let s=0;s<20;s++) api.box(gx-20,PY-1-s*0.6,S+s*1.1,gx+20,PY-s*0.6,S+(s+1)*1.1,STONE);
+    for(const gx of [-55,25]) for(let s=0;s<20;s++) api.box(gx-20,PY-1-s*0.6,S+s*1.1,gx+20,PY-s*0.6,S+(s+1)*1.1,STONE,{foot:true});
     /* ================= THE HOUSE AND ITS COURTS, BY THE MEASURES OF MIDDOT =================
        Laid out as the tractate Middot gives them (and the reconstructions drawn from it), in cubits
        of 0.525 m, everything facing EAST, to the rising sun:
@@ -353,16 +354,16 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     /* THE FORTRESS AT THE CORNER (the Antonia): four towers over the north-west of the courts */
     const A={x0:-150,x1:-35,z0:-307,z1:-267};
     api.pad(A.x0,A.z0,A.x1,A.z1,{y:PY,fill:'hewn-stone',top:'cobble',blend:0});
-    api.box(A.x0,PY,A.z0,A.x1,PY+20,A.z0+2,LIME); api.box(A.x0,PY,A.z1-2,A.x1,PY+20,A.z1,LIME);
-    api.box(A.x0,PY,A.z0,A.x0+2,PY+20,A.z1,LIME); api.box(A.x1-2,PY,A.z0,A.x1,PY+20,A.z1,LIME);
-    for(const [tx,tz,h] of [[A.x0,A.z0,32],[A.x1,A.z0,32],[A.x0,A.z1,32],[A.x1,A.z1,42]]) api.box(tx-6,PY,tz-6,tx+6,PY+h,tz+6,LIME);
+    api.box(A.x0,PY,A.z0,A.x1,PY+20,A.z0+2,LIME,{foot:true}); api.box(A.x0,PY,A.z1-2,A.x1,PY+20,A.z1,LIME,{foot:true});
+    api.box(A.x0,PY,A.z0,A.x0+2,PY+20,A.z1,LIME,{foot:true}); api.box(A.x1-2,PY,A.z0,A.x1,PY+20,A.z1,LIME,{foot:true});
+    for(const [tx,tz,h] of [[A.x0,A.z0,32],[A.x1,A.z0,32],[A.x0,A.z1,32],[A.x1,A.z1,42]]) api.box(tx-6,PY,tz-6,tx+6,PY+h,tz+6,LIME,{foot:true});   /* (three quarters of each tower stand off the fortress's pad: footed to the hill) */
     api.mark('antonia',(A.x0+A.x1)/2,(A.z0+A.z1)/2);
     /* THE POOL OF BĔYTH ḤESDA, north of the courts: two pools and a porch between and about them
        (Yahuchanon 5:2) */
     const BX=10, BZ=-345;
     const BY=gY(BX,BZ)-0.6;
     api.water(BX-40,BZ-22,BX-2,BZ+22,{depth:4,bed:'stone',y:BY}); api.water(BX+2,BZ-22,BX+44,BZ+22,{depth:4,bed:'stone',y:BY});
-    columns(BX,BZ-22,BX,BZ+22,gY(BX,BZ),6,4); columns(BX-42,BZ-24,BX+46,BZ-24,gY(BX,BZ),6,4); columns(BX-42,BZ+24,BX+46,BZ+24,gY(BX,BZ),6,4);
+    columns(BX,BZ-22,BX,BZ+22,null,6,4); columns(BX-42,BZ-24,BX+46,BZ-24,null,6,4); columns(BX-42,BZ+24,BX+46,BZ+24,null,6,4);   /* (each on its own ground: one height over ninety metres left the downhill columns standing on air) */
     api.mark('bethesda',BX,BZ+28);
   } else {
     /* SHELOMOH'S HOUSE on the threshing floor of Arawnah: the great court a square of 500 cubits,
@@ -458,7 +459,7 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     /* the pool of Shiloaḥ at the foot of the ridge (Yahuchanon 9:7) */
     const sx=-20, sz=800;
     api.water(sx-25,sz-12,sx+25,sz+12,{depth:3,bed:'stone',y:gY(sx,sz)-0.6});
-    for(let s=0;s<5;s++) api.box(sx-27,gY(sx,sz)-s*0.4,sz-14-s,sx+27,gY(sx,sz)-s*0.4+0.4,sz-13-s,STONE);
+    for(let s=0;s<5;s++) api.box(sx-27,gY(sx,sz)-s*0.4,sz-14-s,sx+27,gY(sx,sz)-s*0.4+0.4,sz-13-s,STONE,{foot:true});
     api.mark('siloam',sx,sz-20);
     /* the street up from the lower city to the courts, and the market square on it */
     for(let z=230;z<780;z+=3) api.top(26,z,30,z+3,PATH);
@@ -496,8 +497,8 @@ window.YAHRU_PLAN_TRUE=function(api,period){
   }
   /* THE HOUSE OF THE TAUGHT ONES (Yashayahu 8:16), in the lower city by the square */
   { const tx=60, tz=470, ty=gY(60,470);
-    api.box(tx-6,ty,tz-5,tx+6,ty+2.6,tz-4.4,WHITE); api.box(tx-6,ty,tz-5,tx-5.4,ty+2.6,tz+5,WHITE); api.box(tx+5.4,ty,tz-5,tx+6,ty+2.6,tz+5,WHITE);
-    api.box(tx-6,ty,tz+4.4,tx-1.2,ty+2.6,tz+5,WHITE); api.box(tx+1.2,ty,tz+4.4,tx+6,ty+2.6,tz+5,WHITE);
+    api.box(tx-6,ty,tz-5,tx+6,ty+2.6,tz-4.4,WHITE,{foot:true}); api.box(tx-6,ty,tz-5,tx-5.4,ty+2.6,tz+5,WHITE,{foot:true}); api.box(tx+5.4,ty,tz-5,tx+6,ty+2.6,tz+5,WHITE,{foot:true});
+    api.box(tx-6,ty,tz+4.4,tx-1.2,ty+2.6,tz+5,WHITE,{foot:true}); api.box(tx+1.2,ty,tz+4.4,tx+6,ty+2.6,tz+5,WHITE,{foot:true});
     api.box(tx-0.9,ty,tz-3.5,tx+0.9,ty+0.8,tz-2.5,TIMBER); api.box(tx-4.8,ty,tz-4.4,tx-3.2,ty+1.8,tz-3.6,TIMBER);
     api.mark('studyDesk',tx,tz-1.8); api.mark('studyDoor',tx,tz+6.5); api.mark('studyIn',tx+2,tz); api.mark('studyShelf',tx-4,tz-2.8); }
   /* olives on the slopes of the Mount of Olives, across the Qidron, and Gat Shemanim at its foot */
