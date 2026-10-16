@@ -5741,6 +5741,196 @@ T[69]={name:'A BLOCK THAT DECLARES LIGHT CASTS IT — the kiln burns from the ho
     return {ok:!faults.length&&reads.length>0, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,5).join(' · '):'')};
   })};
 
+T[70]={name:'THE WORK OF THE PEOPLE — a job taken, done and paid: the floor, the satchel, the stray and the wolf read off the world, the town remembers, and the log, the save and the scrolls keep it',
+  /* THE FAULT THIS GUARDS (ROADMAP Phase B). Speaking to a soul of the town
+     gave a trade line, a rumour, and "Go in peace": no work, no hire, and a
+     town served was no different from one never entered. Every job here is
+     DONE, not declared: the measures are beaten out at a threshing floor the
+     town laid, the timber is in the satchel before it is handed over, the
+     stray is a beast standing out in the country and walked home behind the
+     traveller, and the wolf is chased off the fold until it is gone. The pay
+     is read off the purse, the goodwill off the town's ledger, the market's
+     lean off its own prices, and the save is read back and restored. WHAT A
+     JOB IS, AND WHO GIVES IT, IS READ OFF world/jobs.js — this test names
+     the kinds of work, never a word or a price.
+     THE BEASTS ARE STEPPED, NOT DRAWN: a walk of a few hundred paces at the
+     frame rate of a software rasteriser on a busy box ran past an hour, so
+     the stray and the wolf are moved by folkStep — the very ticks the frame
+     runs (personTick, beastTick), without the picture — and the traveller is
+     walked at a walker's pace beside them. */
+  run:async page=>page.evaluate(async()=>{
+    const D=window.__VDBG, B=6;
+    if(!D.jobOfferOf||!D.jobDefs||!D.folkStep) return {pending:'no work of the people (Phase B)'};
+    const defs=D.jobDefs(); if(!defs.length) return {ok:false,got:'world/jobs.js declares no work'};
+    const v=await D.standInVillage(); if(!v) return {ok:false,got:'no town would stand'};
+    const frames=async n=>{ for(let f=0;f<n;f++) await new Promise(r=>requestAnimationFrame(r)); };
+    const faults=[], reads=[];
+    D.jobsRestore(null); D.state.cargo={}; D.state.fish=0;
+    let V=D.jobVillage(); if(!V) return {ok:false,got:'no town with people'};
+    D.setLocalHour(10,V.site.x,V.site.z); D.folkStep(4,0.1);
+    V=D.jobVillage();
+    const w=D.state.walk;
+    const stand=(x,z)=>{ w.x=x; w.z=z; w.feetY=undefined; };
+    const adultIn=(VV,pick)=>VV.people.find(e=>!e.child&&pick(e));
+    const giverIn=(VV,k)=>{ const d=defs.find(q=>q.k===k); return d?adultIn(VV,e=>d.trades.indexOf(e.role)>=0):null; };
+    const purse=()=>D.state.coins;
+
+    /* ---- 1 · EVERY OFFER FITS THE TRADE THAT MAKES IT ---- */
+    { let asked=0, fit=0;
+      for(const e of V.people){ if(e.child) continue; const r=D.jobOfferOf(e.i); if(!r.offer) continue; asked++;
+        const d=defs.find(q=>q.k===r.offer.k);
+        if(d&&d.trades.indexOf(e.role)>=0) fit++; else faults.push('a '+e.role+' offered '+r.offer.k+', which is not his trade\'s work'); }
+      if(!asked) faults.push('nobody in the town had work to give');
+      reads.push(asked+' souls asked, '+fit+' offered their own trade\'s work'); }
+
+    /* ---- 2 · THE FLOOR: measures beaten out where the town laid its floor, and paid ---- */
+    { const g=giverIn(V,'thresh');
+      if(!g) reads.push('no reaper in this town (the floor not judged)');
+      else { const id=D.jobTakeOf(g.i,'thresh'), J=D.jobsNow().jobs.find(j=>j.id===id);
+        const place=(V.floors.length?V.floors:V.farms)[0];
+        stand(V.site.x,V.site.z);
+        const away=D.jobPrompt();
+        if(away&&away.act==='gather') faults.push('the floor\'s work was offered at the well, far from any floor');
+        if(D.jobHandOverOf(id,g.i)) faults.push('the grain was paid for before a measure was beaten out');
+        stand(place.x,place.z);
+        let strokes=0; for(let k=0;k<J.n+3;k++){ const a=D.jobPress(); if(a==='gather') strokes++; }
+        const after=D.jobsNow().jobs.find(j=>j.id===id);
+        if(strokes!==J.n||!after||after.have!==J.n) faults.push('the floor took '+strokes+' strokes for '+J.n+' measures (have '+(after&&after.have)+')');
+        const c0=purse(), gw0=D.gwOf(V.vk), w0=(D.jobsNow().works[V.land]||0);
+        const m=D.jobHandOverOf(id,g.i), N=D.jobsNow();
+        if(!m) faults.push('the measures were not taken when handed over');
+        else { if(N.coins!==c0+J.pay) faults.push('the floor paid '+(N.coins-c0)+' against the '+J.pay+' promised');
+          if(D.gwOf(V.vk)!==gw0+J.gw) faults.push('the goodwill moved '+(D.gwOf(V.vk)-gw0)+' against the job\'s '+J.gw);
+          if((N.works[V.land]||0)!==w0+1) faults.push('the work was not counted to '+V.land);
+          if(N.jobs.some(j=>j.id===id)||!N.done.length) faults.push('the paid work is still in hand, or not in the done list');
+          reads.push('the floor: '+J.n+' measures beaten out at '+(V.floors.length?'a threshing floor':'the field')+', paid '+J.pay+' shekels and '+J.gw+' goodwill'); } } }
+
+    /* ---- 3 · THE SATCHEL: the timber is in the hand before it is paid for ---- */
+    { const g=giverIn(V,'timber')||adultIn(V,()=>true);
+      const id=D.jobTakeOf(g.i,'timber'), J=D.jobsNow().jobs.find(j=>j.id===id);
+      if(!J) faults.push('no timber job could be taken');
+      else { const have0=D.satchelCount('log');
+        if(have0<J.n&&D.jobHandOverOf(id,g.i)) faults.push('the timber was paid for with an empty satchel');
+        D.satchelAdd('log',J.n);
+        const h1=D.satchelCount('log'), c0=purse();
+        const m=D.jobHandOverOf(id,g.i);
+        if(!m) faults.push('a full satchel was refused');
+        else { if(D.satchelCount('log')!==h1-J.n) faults.push('the satchel gave up '+(h1-D.satchelCount('log'))+' timber for '+J.n);
+          if(purse()!==c0+J.pay) faults.push('the timber paid '+(purse()-c0)+' against '+J.pay);
+          reads.push('the satchel: refused while short, then '+J.n+' timber taken out of it and paid '+J.pay); } } }
+
+    /* ---- 4 · THE TOWN REMEMBERS: its market leans toward a friend, and mints nothing ---- */
+    { const gw0=D.gwOf(V.vk), raw=(D.gwSet(V.vk,0),D.dealAt(V.vi)); D.gwSet(V.vk,40); const kind=D.dealAt(V.vi);
+      let better=0, mint=0;
+      for(let k=0;k<raw.length;k++){ if(kind[k].buy<raw[k].buy||kind[k].sell>raw[k].sell) better++;
+        if(kind[k].sell>=kind[k].buy) mint++; }
+      D.gwSet(V.vk,gw0);
+      if(!better) faults.push('an honoured name bought no better than a stranger at any of '+raw.length+' goods');
+      if(mint) faults.push(mint+' goods would sell for as much as they cost: the goodwill mints coins');
+      reads.push('honoured, the market leans his way on '+better+' of '+raw.length+' goods and mints nothing'); }
+
+    /* ---- 5 · THE TALK: speak, ask for work, trade — and the work taken there is in THE LOG ---- */
+    { const e=adultIn(V,x=>!x.abed&&(x.role==='farmer'||x.role==='water'||x.role==='woodcutter'||x.role==='mason'))||adultIn(V,x=>!x.abed);
+      stand(e.x+3,e.z); D.openTalkTo(e.i);
+      const T=D.talkView();
+      if(!T) faults.push('the talk did not open');
+      else { const has=s=>T.buttons.some(b=>b.indexOf(s)>=0);
+        if(!(has('Speak')&&has('Ask for work')&&has('Trade'))) faults.push('the talk offered '+T.buttons.join(' / '));
+        D.talkPress(2);
+        const T2=D.talkView(), take=T2?T2.buttons.findIndex(b=>b.indexOf('Take the work')>=0):-1;
+        if(take>=0){ const n0=D.jobsNow().jobs.length; D.talkPress(take+1);
+          const N=D.jobsNow(); if(N.jobs.length!==n0+1) faults.push('the work taken in the talk is not in hand');
+          const L=D.logHTML(), j=N.jobs[N.jobs.length-1];
+          if(!j||L.work.indexOf('WORK IN HAND')<0||L.work.indexOf(j.pay+' shekels')<0) faults.push('THE LOG does not show the work taken');
+          else reads.push('the talk: speak · ask for work · trade, and the work taken there stands in THE LOG'); }
+        else faults.push('a '+e.role+' asked for work offered none: '+(T2&&T2.line||'').slice(0,80));
+        D.closeTalk(); D.logClose(); } }
+
+    /* ---- 6 · A SCROLL THE PEOPLE KEEP: in no ground, and given for the work ---- */
+    { const SC=D.SCROLLS, kept=SC.filter(s=>s.given&&!s.gone);
+      if(!kept.length) faults.push('no scroll is kept by the people');
+      const onGround=kept.filter(s=>s.m||s.placed!=='given');
+      if(onGround.length) faults.push(onGround.map(s=>s.id).join(',')+' kept by the people and yet laid in the earth');
+      const keeper=V.people.find(e=>!e.child&&!e.abed&&D.scrollKeptBy(e.i));
+      if(!keeper) reads.push(kept.length+' scrolls kept by the people, none of them in '+V.land+' (the giving not judged)');
+      else { const sc=D.scrollKeptBy(keeper.i), w0=D.jobsNow().works[sc.land]||0;
+        D.worksSet(sc.land,sc.given.works-1); stand(keeper.x+3,keeper.z); D.openTalkTo(keeper.i);
+        const early=D.talkView(); if(early&&early.buttons.some(b=>b.indexOf('Receive')>=0)) faults.push(sc.id+' was offered before its works were done');
+        D.closeTalk(); D.worksSet(sc.land,sc.given.works); D.openTalkTo(keeper.i);
+        const T=D.talkView(), k=T?T.buttons.findIndex(b=>b.indexOf('Receive')>=0):-1;
+        if(k<0) faults.push(sc.id+' was not offered when its works were done');
+        else { D.talkPress(k+1); await frames(2);
+          if(!D.scrollTaken.has(sc.id)) faults.push(sc.id+' was offered and not given');
+          else reads.push(kept.length+' scrolls kept by the people, none in the earth; '+sc.id+' given by a '+keeper.role+' of '+sc.land+' after '+sc.given.works+' works'); }
+        D.closeTalk(); if(D.endScene) D.endScene(); D.worksSet(sc.land,w0); }
+      const L=D.logHTML();
+      const gives=(L.scrolls.match(/tag give/g)||[]).length, lies=(L.scrolls.match(/tag lie/g)||[]).length;
+      const left=SC.filter(s=>!s.gone&&!D.scrollTaken.has(s.id));
+      if(gives+lies!==left.length) faults.push('THE LOG names '+(gives+lies)+' of the '+left.length+' scrolls still out');
+      else reads.push('THE LOG: of '+left.length+' scrolls still out, '+lies+' lie somewhere and '+gives+' are kept by the people');
+      D.logClose(); }
+
+    /* ---- 7 · THE SAVE KEEPS IT, and gives it back ---- */
+    { const before=D.jobsNow(); await D.saveNow();
+      const raw=JSON.parse(await D.savedRaw()||'{}');
+      if(!raw.jb||raw.jb.length!==before.jobs.length) faults.push('the save holds '+(raw.jb?raw.jb.length:'no')+' jobs against '+before.jobs.length+' in hand');
+      D.jobsRestore(null);
+      if(D.jobsNow().jobs.length) faults.push('the jobs were not cleared for the restore');
+      D.jobsRestore(raw); const after=D.jobsNow();
+      const same=after.jobs.length===before.jobs.length&&after.jobs.every((j,k)=>j.id===before.jobs[k].id&&j.k===before.jobs[k].k&&j.status===before.jobs[k].status);
+      if(!same) faults.push('the restored jobs are not the saved ones');
+      if(JSON.stringify(after.gw)!==JSON.stringify(before.gw)||JSON.stringify(after.works)!==JSON.stringify(before.works)) faults.push('the goodwill or the works counted did not come back from the save');
+      else reads.push('the save: '+after.jobs.length+' in hand, '+after.n+' done, the goodwill and the works by land all read back'); }
+
+    /* ---- 8 · THE FOLD: a stray led home, a wolf driven off — in the nearest town that keeps one ---- */
+    D.jobsRestore(null);
+    let F=V.pen&&V.people.some(e=>e.role==='herder')?V:null;
+    for(const land of ['Jordan','Syria','Lebanon','Egypt','Cyprus','Turkey']){ if(F) break;
+      if(!await D.standInVillage(land)) continue; const V2=D.jobVillage();
+      if(V2&&V2.land===land&&V2.pen&&V2.people.some(e=>e.role==='herder')) F=V2; }
+    if(!F) reads.push('no town near with a fold (the stray and the wolf not judged)');
+    else {
+      D.setLocalHour(10,F.site.x,F.site.z); D.folkStep(4,0.1); F=D.jobVillage();
+      /* the stray: out in the country, taken in hand, and walked home at a walker's pace */
+      { const g=giverIn(F,'stray'), id=g&&D.jobTakeOf(g.i,'stray'), b0=id&&D.jobBeast(id);
+        if(!b0) faults.push('the stray job raised no beast at '+F.name);
+        else { const far=Math.hypot(b0.x-F.pen.x,b0.z-F.pen.z);
+          if(far<B*20) faults.push('the stray stands only '+far.toFixed(0)+' from the fold — it is not lost');
+          stand(b0.x+3,b0.z);
+          if(D.jobPress()!=='lead') faults.push('standing at the stray, the hand was not offered it');
+          else { let waited=0;
+            for(let k=0;k<3000;k++){ D.folkStep(1,0.1);
+              const J=D.jobsNow().jobs.find(j=>j.id===id); if(!J||J.status!=='taken') break;
+              const b=D.jobBeast(id); if(!b) break;
+              if(Math.hypot(b.x-w.x,b.z-w.z)>B*4){ if(++waited>400) break; continue; }      /* wait for it to come up */
+              const dx=F.pen.x-w.x, dz=F.pen.z-w.z, d=Math.hypot(dx,dz);
+              if(d>B*1.5){ const st=Math.min(d,1.1); w.x+=dx/d*st; w.z+=dz/d*st; } }
+            const J=D.jobsNow().jobs.find(j=>j.id===id);
+            if(!J||J.status!=='ready') faults.push('the stray was never brought into the fold ('+(J?J.status:'gone')+')');
+            else { const c0=purse(); D.jobHandOverOf(id,g.i);
+              if(purse()!==c0+J.pay) faults.push('the herdsman paid '+(purse()-c0)+' for the stray against '+J.pay);
+              else reads.push('the stray: found '+(far/B).toFixed(0)+' blocks out from the fold of '+F.name+', walked home behind the traveller, paid '+J.pay); } } } }
+      /* the wolf: it runs from the man who comes at it, until it is gone */
+      { const g=giverIn(F,'wolf'), id=g&&D.jobTakeOf(g.i,'wolf'), b0=id&&D.jobBeast(id);
+        if(!g) reads.push('no hunter at '+F.name+' (the wolf not judged)');
+        else if(!b0) faults.push('the wolf job raised no wolf');
+        else { stand(F.site.x,F.site.z); D.folkStep(60,0.1);
+          const J0=D.jobsNow().jobs.find(j=>j.id===id);
+          if(!J0||J0.status!=='taken') faults.push('the wolf went off by itself, with no one coming at it');
+          for(let k=0;k<3000;k++){ const b=D.jobBeast(id); if(!b) break;
+            const dx=b.x-F.pen.x, dz=b.z-F.pen.z, d=Math.hypot(dx,dz)||1;
+            w.x=b.x-dx/d*B*2.2; w.z=b.z-dz/d*B*2.2; D.folkStep(1,0.1); }
+          const J=D.jobsNow().jobs.find(j=>j.id===id);
+          if(!J||J.status!=='ready') faults.push('the wolf was chased and never driven off ('+(J?J.status:'gone')+')');
+          else { const c0=purse(); D.jobHandOverOf(id,g.i);
+            if(purse()!==c0+J.pay) faults.push('the hunter paid '+(purse()-c0)+' against '+J.pay);
+            else reads.push('the wolf: chased off the fold of '+F.name+' into the hills, and paid '+J.pay); } } }
+    }
+
+    D.jobsRestore(null);
+    return {ok:!faults.length, got:reads.join(' · ')+(faults.length?' · FAULTS: '+faults.slice(0,8).join(' · '):'')};
+  })};
+
 T[37]={name:'no county is given to the sea by a river running through it',
   /* THE FAULT THIS GUARDS — "holes are appearing in the world view when
      zooming out", and they were holes exactly.
