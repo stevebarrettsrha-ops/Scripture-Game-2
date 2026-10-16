@@ -27,20 +27,21 @@ function arg(k,d){ const i=process.argv.indexOf('--'+k); return i>=0&&process.ar
 const LANDS=['Lebanon','Egypt','Yasharal','Iraq','Greece','Norway','Japan','Yemen'];
 const GOODS=['dye','cedar','linen','glass','oil','copper','incense','bitumen'];
 /* the pictures: a land, the workshop of it to stand in, and the file */
+/* (each costs minutes of software-drawn frames on a loaded machine, so only these; --all for the rest) */
 const SHOTS=[
   {land:'Lebanon',  shop:'dye-works',     file:'tsor-dye-works.png'},
   {land:'Lebanon',  stall:true,           file:'tsor-market-stall.png'},
-  {land:'Lebanon',  town:'Tsiḏon', shop:'glass-furnace', file:'tsidon-glass-furnace.png'},
-  {land:'Lebanon',  shop:'cedar-camp',    file:'lebanon-cedar-camp.png'},
+  {land:'Lebanon',  shop:'glass-furnace', file:'tsidon-glass-furnace.png'},
+  {land:'Lebanon',  shop:'cedar-camp',    file:'lebanon-cedar-camp.png', more:true},
   {land:'Egypt',    shop:'linen-works',   file:'mitsrayim-linen-works.png'},
-  {land:'Egypt',    shop:'papyrus',       file:'mitsrayim-papyrus.png'},
+  {land:'Egypt',    shop:'papyrus',       file:'mitsrayim-papyrus.png', more:true},
   {land:'Yasharal', shop:'olive-press',   file:'yasharal-olive-press.png'},
-  {land:'Yasharal', shop:'wine-press',    file:'yasharal-wine-press.png'},
+  {land:'Yasharal', shop:'wine-press',    file:'yasharal-wine-press.png', more:true},
   {land:'Iraq',     shop:'brick-kiln',    file:'babal-brick-kiln.png'},
   {land:'Iraq',     shop:'bitumen-pit',   file:'babal-bitumen-pit.png'},
   {land:'Yemen',    shop:'incense-store', file:'sheba-incense-store.png'},
-  {land:'Yemen',    stall:true,           file:'sheba-market-stall.png'}
-];
+  {land:'Yemen',    stall:true,           file:'sheba-market-stall.png', more:true}
+].filter(s=>!s.more||process.argv.includes('--all'));
 
 (async()=>{
   const shotDir=arg('shots',null), earth=process.env.EARTH||'true';
@@ -90,6 +91,12 @@ const SHOTS=[
     console.log(faults.length?'\nFAULTS ('+faults.length+'):\n  '+faults.join('\n  '):'\nno fault: in these lands every good is cheapest where it is made and dearest where it is wanted');
 
     /* ---------------- 2 · EACH LAND, WALKED INTO ---------------- */
+    const taken=new Set();
+    const shoot=async land=>{ for(const S of SHOTS.filter(s=>s.land===land&&!taken.has(s.file))){
+        const r=await shotOf(S);
+        if(r.none) continue;
+        await page.screenshot({path:path.join(shotDir,S.file),timeout:600000}); taken.add(S.file);
+        console.log('  shot '+S.file+' at '+r.at+' ('+r.secs+' s)'+(r.workers&&r.workers.length?' — '+r.workers.map(w=>w.n+' the '+w.role+' '+(w.abed?'abed':w.anim+', '+w.d+' from the work')).join('; '):'')); } };
     const visit=async(land,town,hour)=>page.evaluate(async({land,town,hour})=>{
       const D=window.__VDBG, K=window.__KIT, W=window.__WORLD, S=K.sites(), C=window.EARTH.list;
       const raf=()=>new Promise(r=>requestAnimationFrame(r));
@@ -103,12 +110,12 @@ const SHOTS=[
       for(;k<9000;k++){ D.updateChunks(D.state.walk.x,D.state.walk.z,400); await raf();
         vv=W.villages().get(idx); if(vv&&!vv.building&&vv.people&&vv.people.length) break; }
       if(!vv||vv.building) return {none:true,frames:k};
-      for(let f=0;f<60;f++) await raf();
+      for(let f=0;f<4;f++) await raf();
       const adults=vv.people.filter(p=>!p.child), roles={};
       for(const p of adults) roles[p.role]=(roles[p.role]||0)+1;
       const kinds={}; for(const b of vv.beasts) kinds[b.kind]=(kinds[b.kind]||0)+1;
       const seen=new Set(), names=[];
-      for(const p of vv.people){ if(seen.has(p.name)) continue; seen.add(p.name); names.push(p.name+' the '+p.role); if(names.length>=6) break; }
+      for(const p of vv.people){ if(seen.has(p.name)) continue; seen.add(p.name); if(names.length<8&&!p.child) names.push(p.name+' the '+p.role); }
       return {idx,frames:k,name:(site.name||((window.EARTH.cityList||[]).find(c=>c.country===land)||{}).name||land),
         people:vv.people.length,distinct:seen.size, names,roles,kinds,
         wares:window.LANDS.wares(land),
@@ -118,8 +125,7 @@ const SHOTS=[
     const shotOf=async(S)=>page.evaluate(async S=>{
       const D=window.__VDBG, K=window.__KIT, W=window.__WORLD, B=K.B;
       const raf=()=>new Promise(r=>requestAnimationFrame(r));
-      let vv=null; for(const [,v] of W.villages()){ if(v.land!==S.land||!v.site) continue;
-        if(S.town&&v.site.name!==S.town) continue;
+      let vv=null; for(const [,v] of W.villages()){ if(v.land!==S.land||!v.site||v.building) continue;
         if(S.shop?(v.shops||[]).some(s=>s.k===S.shop):(v.stalls||[]).length){ vv=v; break; } }
       if(!vv) return {none:true};
       let px,pz,tx,tz,dist=64,pitch=0.52;
@@ -127,17 +133,16 @@ const SHOTS=[
         const f=[[0,1],[1,0],[0,-1],[-1,0]][s.rot], half=(s.rot%2?s.w:s.d)/2;
         px=s.x+f[0]*(half+B*1.0); pz=s.z+f[1]*(half+B*1.0); tx=s.x; tz=s.z; dist=58; }
       else { const st=vv.stalls[0]; px=st.x; pz=st.z-B*3.4; tx=st.x; tz=st.z; dist=34; pitch=0.36; }
-      D.state.walk.x=px; D.state.walk.z=pz; D.state.walk.feetY=undefined; D.state.walk.vy=0; D.setMode('walk');
-      D.state.walk.heading=Math.atan2(tx-px,tz-pz);
-      for(let k=0;k<30;k++){ D.updateChunks(px,pz,400); await raf(); }
-      D.state.walk.heading=Math.atan2(tx-px,tz-pz);
-      D.state.camYaw=0.0; D.state.camPitch=pitch; D.state.camDist=dist;
-      D.state.zoom=Math.log(dist/14)/Math.log(K.R_WORLD*1.75/14);
-      if(D.flushNow) D.flushNow();
-      for(let k=0;k<240;k++){ D.updateChunks(px,pz,400); D.state.walk.heading=Math.atan2(tx-px,tz-pz); await raf(); }
+      /* stand there and let the ground under it be laid (standAt waits for the chunk queue), then hold the eye */
+      const t0=performance.now();
+      D.state.walk.vy=0; await D.standAt(px,pz);
+      const aim=()=>{ D.state.walk.heading=Math.atan2(tx-px,tz-pz); D.state.camYaw=0.0; D.state.camPitch=pitch; D.state.camDist=dist;
+        D.state.zoom=Math.log(dist/14)/Math.log(K.R_WORLD*1.75/14); };
+      aim(); if(D.flushNow) D.flushNow();
+      for(let k=0;k<24;k++){ aim(); await raf(); }
       const w=vv.people.filter(p=>p.shop&&S.shop&&vv.shops.find(q=>q.k===S.shop).hands.includes(p.shop))
         .map(p=>({n:p.name,role:p.role,anim:p.anim,abed:!!p._abed,d:Math.round(Math.hypot(p.m.position.x-p.work.x,p.m.position.z-p.work.z))}));
-      return {at:[Math.round(px),Math.round(pz)],workers:w}; },S);
+      return {at:[Math.round(px),Math.round(pz)],workers:w,secs:Math.round((performance.now()-t0)/1000)}; },S);
 
     for(const land of LANDS){
       const v=await visit(land,null,10.5);
@@ -147,20 +152,14 @@ const SHOTS=[
       console.log('  trades: '+Object.entries(v.roles).sort((a,b)=>b[1]-a[1]).map(([r,n])=>r+' '+n).join(', '));
       console.log('  stalls: '+(v.wares?v.wares.join(', '):'(the old goods)')+'    pens: '+Object.entries(v.kinds).map(([k,n])=>k+' '+n).join(', ')+(v.mounts.length?'    rides: '+v.mounts.join(', '):''));
       console.log('  works:  '+(v.shops.length?v.shops.map(s=>s.name+' ('+s.hands.join('; ')+')').join(' · '):'none'));
-      if(shotDir) for(const S of SHOTS.filter(s=>s.land===land&&!s.town)){
-        const r=await shotOf(S);
-        if(r.none){ console.log('  shot '+S.file+': nothing to stand at'); continue; }
-        await page.screenshot({path:path.join(shotDir,S.file),timeout:600000});
-        console.log('  shot '+S.file+' at '+r.at+(r.workers&&r.workers.length?' — '+r.workers.map(w=>w.n+' the '+w.role+' '+(w.abed?'abed':w.anim+', '+w.d+' from the work')).join('; '):'')); }
+      if(shotDir) await shoot(land);
     }
     /* Tsiḏon, the glass-house's own town — on the true earth a town of its own */
     { const v=await visit('Lebanon','Tsiḏon',10.5);
       if(v.none) console.log('\nTsiḏon: no town of that name stands on this earth (the glass-house is raised at Tsor)');
       else { console.log('\nTSIḎON ('+v.people+' souls): '+v.names.join(', ')+'\n  works:  '+v.shops.map(s=>s.name+' ('+s.hands.join('; ')+')').join(' · '));
-        if(shotDir) for(const S of SHOTS.filter(s=>s.town==='Tsiḏon')){ const r=await shotOf(S);
-          if(r.none){ console.log('  shot '+S.file+': nothing to stand at'); continue; }
-          await page.screenshot({path:path.join(shotDir,S.file),timeout:600000});
-          console.log('  shot '+S.file+' at '+r.at); } } }
+        if(shotDir) await shoot('Lebanon'); } }
+    if(shotDir) for(const S of SHOTS) if(!taken.has(S.file)) console.log('  NOT TAKEN: '+S.file+' (no such workshop stood where the probe walked)');
     console.log('\ndone in '+el());
     if(errs.length) console.log('PAGE ERRORS:',[...new Set(errs.map(e=>e.split('\n')[0]))].slice(0,10));
   } finally { await browser.close(); }
