@@ -22,7 +22,7 @@ STORY.scene({
   musicAt:[[102,'holy']],
   next:null,
 
-  set:{ clear:[-30,-24,34,30], level:[[-22,-8,26,24,'grass',8]] },
+  set:{ clear:[-30,-24,34,30], level:[[-22,-8,26,24,'sand',8]] },
 
   cast:[
     { id:'aliyahu', as:'prophet', robe:0x6b5a40, cloth:0x5a4a34, seed:8,

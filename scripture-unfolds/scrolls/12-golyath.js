@@ -25,7 +25,7 @@ STORY.scene({
   musicAt:[[130,'royal']],
   next:null,
 
-  set:{ clear:[-70,-30,70,50], level:[[-40,-14,40,26,'grass',10]] },
+  set:{ clear:[-70,-30,70,50], level:[[-40,-14,40,26,'sand',10]] },
 
   cast:[
     { id:'golyath', as:'giant', seed:5,

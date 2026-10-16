@@ -23,7 +23,7 @@ STORY.scene({
   musicAt:[[36,'holy'],[132,'eden']],
   next:null,
 
-  set:{ clear:[-26,-30,26,26], level:[[-5,-4,5,5,'grass',6]] },
+  set:{ clear:[-26,-30,26,26], level:[[-5,-4,5,5,'sand',6]] },
 
   cast:[
     { id:'yaaqob', as:'man', robe:0x7c6a52, cloth:0x8a6e4c, seed:23, staff:true,

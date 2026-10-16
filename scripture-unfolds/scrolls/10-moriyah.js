@@ -24,7 +24,7 @@ STORY.scene({
   musicAt:[[104,'holy']],
   next:null,
 
-  set:{ clear:[-30,-34,30,24], level:[[-6,-6,6,6,'grass',6]] },
+  set:{ clear:[-30,-34,30,24], level:[[-6,-6,6,6,'sand',6]] },
 
   cast:[
     { id:'avrahim', as:'elder', robe:0x6e5a44, cloth:0xd8cdb4, seed:6, staff:true,
