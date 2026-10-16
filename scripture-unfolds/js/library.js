@@ -84,7 +84,7 @@ window.LIBRARY=(function(){
     if(!sc) return 'not yet written into the world';
     const g=giver(sc);
     if(g){ if(typeof g==='string') return 'given by '+g+', for work done for them';
-      const who=g.who||g.name||g.trade||g.role||'one of the townsfolk', town=g.town||g.place||g.at, land=g.land||g.country||sc.country;
+      const who=g.who||g.name||g.trade||g.role||'one of the townsfolk', town=g.town||g.place||g.at, L=g.land||g.country||sc.country, land=Array.isArray(L)?L.join(' or '):L;
       return 'given by '+(/^(a|an|the)\s/i.test(who)?who:'a '+who)+(town?' of '+town:'')+(land?', in '+land:'')+', for work done for them'; }
     const at=sc.at||{};
     if(at.mount) return 'it lies on the summit of '+at.mount;

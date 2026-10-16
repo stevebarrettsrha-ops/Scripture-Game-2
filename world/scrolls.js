@@ -25,6 +25,50 @@
      at       OPTIONAL — a PLACE that overrides the country and the bearing:
                 { mount:'Mount Sinai' }  the highest ground of that height
                 { cave:true }            deep in a hollow, under real rock
+     given    OPTIONAL — the scroll is NOT lying anywhere: it is kept by one of
+              the people, and given for work done for them (Phase B3, F4):
+                { land:'Yahudah', by:'teacher', who:'a scribe of the House',
+                  works:2 }
+              land   the land whose people keep it — a country's name exactly;
+                     or a list of them in order, the first that stands on
+                     this earth keeping it (Yahudah lies wholly within the
+                     walls of Yahrushalayim on the small map and raises no
+                     village of its own, so her scribes are found in Yasharal
+                     there)
+              by     the trade of the keeper (js/behavior.js FOLK, by role):
+                     any soul of that trade in any town of that land
+              who    what the log calls him
+              works  how many works must first be done for the people of that
+                     land (THE LOG counts them) before he puts it in your hand
+              A given scroll has no stone in the earth, and the golden needle
+              lies on its keeper's land instead.
+
+   ---- WHY SEVEN OF THEM ARE GIVEN, AND NOT FOUND ----
+   ROADMAP Phase B3 and F4: *"Some scrolls are never found lying anywhere.
+   Townsfolk give them, after a job or a chain of jobs, in a land that fits
+   the book: a scribe in Yahudah, an elder in Babel, a merchant in Tsor."*
+   The rest still lie where their events happened. The split, chosen per
+   scroll for where the book was KEPT rather than where its story fell:
+
+     found   (17)  the eight books of the beginning (the caves, the summit,
+                   the lands of the old record), and the events at their own
+                   places — the flood, the tower, Ur, Seḏom, Bĕyth ʼĔl,
+                   Yosĕph, the sea, Neḇo, Yahriḥo, Ninewĕh
+     given    (7)  the scrolls of the kingdom and the exile, which were kept
+                   by the scribes and the elders and not left on the ground:
+                     THE VALLEY OF ĔLAH     a scribe of Yasharal, after 1 work
+                     KARMEL                 a scribe of Yasharal, after 3
+                     THE HOUSE              a scribe of the House, in Yahudah
+                                            (or Yasharal), after 2
+                     MORIYAH                a scribe of the House, after 4
+                     DANI’AL                an elder of Baḇel (Iraq), after 2
+                     YASHAR                 a merchant of Tsor (Lebanon), after 2
+                     ESTĔR                  a widow at the well of Shushan
+                                            (Iran), after 1
+   The chains (Yasharal 1 then 3, Yahudah 2 then 4 — on the small map, where
+   Yahudah's scribes are in Yasharal, one chain of four: 1, 2, 3, 4) are the
+   "chain of jobs": the keeper hands over each only to one who has kept on
+   working for his land.
 
    ---- WHY THREE OF THEM NAME A PLACE ----
    §5 of the brief: *"Make the great scrolls cost something. With caves in the
@@ -72,6 +116,9 @@ EARTH.scroll({ id:'chanok', book:'ḤANOḴ', name:'THE SCROLL OF ḤANOḴ',
 
 EARTH.scroll({ id:'yashar', book:'YASHAR', name:'THE SCROLL OF YASHAR',
   country:'Lebanon', bearing:5.2,
+  /* a book cited and never found: it went by the ships of Tsor, from hand to
+     hand, and a merchant of the city keeps a copy for a friend of the market */
+  given:{ land:'Lebanon', by:'vendor', who:'a merchant of Tsor', works:2 },
   verse:{ t:'And Aluahim formed man from the ground, and he blew into his nostrils the breath of life, and man became a living nephesh endowed with speech.',
           ref:'YASHAR 1:2' },
   words:'“Is it not written in the Scroll of Yashar?” The upright book, that tells the years between the words.' });
@@ -138,6 +185,9 @@ EARTH.scroll({ id:'sedom', book:'BERĔSHITH', name:'THE SCROLL OF SEḎOM AND AM
 
 EARTH.scroll({ id:'moriyah', book:'BERĔSHITH', name:'THE SCROLL OF MORIYAH',
   country:'Yahudah', bearing:2.2,
+  /* the mount of the binding is the mount of the House, and the scribe who
+     keeps the one keeps the other — the second of his chain */
+  given:{ land:['Yahudah','Yasharal'], by:'teacher', who:'a scribe of the House', works:4 },
   verse:{ t:'And He said, “Take your son, now, your only son Yahtsḥaq, whom you love and go to the land of Moriyah and offer him there as a burnt offering on one of the mountains which I command you.”',
           ref:'BERĔSHITH 22:2' },
   words:'On a mountain in the land of Moriyah, Aḇraham bound his son on the altar — and a ram was provided in his stead.' });
@@ -174,18 +224,22 @@ EARTH.scroll({ id:'yericho', book:'YAHUSHA', name:'THE SCROLL OF YAHRIḤO',
 
 EARTH.scroll({ id:'golyath', book:'1 SHAMU\'AL', name:'THE SCROLL OF THE VALLEY OF ĔLAH',
   country:'Yasharal', bearing:3.2,
+  /* the records of the kings were the scribes' charge; one of them keeps it */
+  given:{ land:'Yasharal', by:'teacher', who:'a scribe of Yasharal', works:1 },
   verse:{ t:'Thus Dawiḏ prevailed over the Philistine with a sling and a stone and smote the Philistine and killed him and there was no sword in the hand of Dawiḏ.',
           ref:'1 SHAMU\'AL 17:50' },
   words:'A shepherd boy with a sling and five smooth stones, and the champion of the Philistines lying on his face in the valley.' });
 
 EARTH.scroll({ id:'temple', book:'1 MALAḴIM', name:'THE SCROLL OF THE HOUSE',
   country:'Yahudah', bearing:3.9,
+  given:{ land:['Yahudah','Yasharal'], by:'teacher', who:'a scribe of the House', works:2 },
   verse:{ t:'And it came to be, when the kohanim came out of the Qodash (Set Apart Place), that the cloud filled the House of (YAHUAH) HWHY,',
           ref:'1 MALAḴIM 8:10' },
   words:'Shelomoh built the House on the mountain, of cedar and hewn stone — and when it was finished the cloud filled it.' });
 
 EARTH.scroll({ id:'karmel', book:'1 MALAḴIM', name:'THE SCROLL OF KARMEL',
   country:'Yasharal', bearing:5.6,
+  given:{ land:'Yasharal', by:'teacher', who:'a scribe of Yasharal', works:3 },
   verse:{ t:'Then the fire of (YAHUAH) HWHY fell and consumed the burnt offering and the wood and the stones and the dust and it licked up the water that was in the trench.',
           ref:'1 MALAḴIM 18:38' },
   words:'Eliyahu alone against the prophets of Baʽal on the mountain, the altar drenched with water — and the fire fell.' });
@@ -197,13 +251,19 @@ EARTH.scroll({ id:'yonah', book:'YONAH', name:'THE SCROLL OF YONAH',
   words:'The prophet who fled by sea and was swallowed by a great fish came at last to the gates of Ninewĕh — and the great city turned.' });
 
 EARTH.scroll({ id:'danial', book:'DANI\'AL', name:'THE SCROLL OF DANI’AL',
-  country:'Iraq', bearing:3.6, at:{ landmark:'Baḇal (Baḇylon) — Etemenanki' },
+  country:'Iraq', bearing:3.6,
+  /* it lay outside the court of Etemenanki until Phase B3; it is the elders of
+     the captivity who keep it now, and it lies on no ground at all */
+  given:{ land:'Iraq', by:'teacher', who:'an elder of Baḇel', works:2 },
   verse:{ t:'“My Al has sent His mal\'ak and has shut the lions’ mouths and they did not harm me, because I was found innocent before Him. And also before you, O sovereign, I have done no harm.”',
           ref:'DANI\'AL 6:22' },
   words:'Carried away to Baḇel, faithful in the court of its kings, thrown to the lions — and the lions’ mouths were shut.' });
 
 EARTH.scroll({ id:'ester', book:'ESTĔR', name:'THE SCROLL OF ESTĔR',
   country:'Iran', bearing:1,
+  /* read aloud in every house at the feast, and kept by the women: a widow
+     who draws at the well gives it to one who has helped her */
+  given:{ land:'Iran', by:'water', who:'a widow at the well of Shushan', works:1 },
   verse:{ t:'“For if you keep entirely silent at this time, relief and deliverance shall arise for the Yahuḏim from another place, while you and your father’s house perish. And who knows whether you have come to the reign for such a time as this?”',
           ref:'ESTĔR 4:14' },
   words:'A queen in Persia who went in to the king unbidden, at the risk of her life, and her people were saved.' });

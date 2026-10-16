@@ -617,6 +617,8 @@ const FILES=[
   'world/lands.js',
   'world/workshops.js',
   'js/lands.js',
+  /* the work the people give, by trade (Phase B) — appended, same append-only rule */
+  'world/jobs.js',
   'js/engine.js',
 ];
 
