@@ -27,9 +27,14 @@
                 { cave:true }            deep in a hollow, under real rock
      given    OPTIONAL — the scroll is NOT lying anywhere: it is kept by one of
               the people, and given for work done for them (Phase B3, F4):
-                { land:'Yahudah', by:'teacher', who:'the scribe of Yahudah',
+                { land:'Yahudah', by:'teacher', who:'a scribe of the House',
                   works:2 }
-              land   the land whose people keep it — a country's name exactly
+              land   the land whose people keep it — a country's name exactly;
+                     or a list of them in order, the first that stands on
+                     this earth keeping it (Yahudah lies wholly within the
+                     walls of Yahrushalayim on the small map and raises no
+                     village of its own, so her scribes are found in Yasharal
+                     there)
               by     the trade of the keeper (js/behavior.js FOLK, by role):
                      any soul of that trade in any town of that land
               who    what the log calls him
@@ -53,14 +58,17 @@
                    by the scribes and the elders and not left on the ground:
                      THE VALLEY OF ĔLAH     a scribe of Yasharal, after 1 work
                      KARMEL                 a scribe of Yasharal, after 3
-                     THE HOUSE              the scribe of Yahudah, after 2
-                     MORIYAH                the scribe of Yahudah, after 4
+                     THE HOUSE              a scribe of the House, in Yahudah
+                                            (or Yasharal), after 2
+                     MORIYAH                a scribe of the House, after 4
                      DANI’AL                an elder of Baḇel (Iraq), after 2
                      YASHAR                 a merchant of Tsor (Lebanon), after 2
                      ESTĔR                  a widow at the well of Shushan
                                             (Iran), after 1
-   The chains (Yasharal 1 then 3, Yahudah 2 then 4) are the "chain of jobs":
-   the same keeper hands over the second only to one who has kept on working.
+   The chains (Yasharal 1 then 3, Yahudah 2 then 4 — on the small map, where
+   Yahudah's scribes are in Yasharal, one chain of four: 1, 2, 3, 4) are the
+   "chain of jobs": the keeper hands over each only to one who has kept on
+   working for his land.
 
    ---- WHY THREE OF THEM NAME A PLACE ----
    §5 of the brief: *"Make the great scrolls cost something. With caves in the
@@ -179,7 +187,7 @@ EARTH.scroll({ id:'moriyah', book:'BERĔSHITH', name:'THE SCROLL OF MORIYAH',
   country:'Yahudah', bearing:2.2,
   /* the mount of the binding is the mount of the House, and the scribe who
      keeps the one keeps the other — the second of his chain */
-  given:{ land:'Yahudah', by:'teacher', who:'the scribe of Yahudah', works:4 },
+  given:{ land:['Yahudah','Yasharal'], by:'teacher', who:'a scribe of the House', works:4 },
   verse:{ t:'And He said, “Take your son, now, your only son Yahtsḥaq, whom you love and go to the land of Moriyah and offer him there as a burnt offering on one of the mountains which I command you.”',
           ref:'BERĔSHITH 22:2' },
   words:'On a mountain in the land of Moriyah, Aḇraham bound his son on the altar — and a ram was provided in his stead.' });
@@ -224,7 +232,7 @@ EARTH.scroll({ id:'golyath', book:'1 SHAMU\'AL', name:'THE SCROLL OF THE VALLEY 
 
 EARTH.scroll({ id:'temple', book:'1 MALAḴIM', name:'THE SCROLL OF THE HOUSE',
   country:'Yahudah', bearing:3.9,
-  given:{ land:'Yahudah', by:'teacher', who:'the scribe of Yahudah', works:2 },
+  given:{ land:['Yahudah','Yasharal'], by:'teacher', who:'a scribe of the House', works:2 },
   verse:{ t:'And it came to be, when the kohanim came out of the Qodash (Set Apart Place), that the cloud filled the House of (YAHUAH) HWHY,',
           ref:'1 MALAḴIM 8:10' },
   words:'Shelomoh built the House on the mountain, of cedar and hewn stone — and when it was finished the cloud filled it.' });
