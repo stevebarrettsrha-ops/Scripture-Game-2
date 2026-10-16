@@ -11181,7 +11181,8 @@ function toggleGuide(){
   updateGuideBtn();
   if(GUIDE.mode==='ship') toast('The needle turns blue, and lies on your ship.');
   else { const sc=nextScroll();
-    toast(sc?'The needle turns gold, and lies on '+sc.name+', hidden in '+sc.country+'.'
+    toast(sc?(sc.given?'The needle turns gold, and lies on the land of '+keeperLand(sc)+', where '+sc.given.who+' keeps '+sc.name+'.'
+              :'The needle turns gold, and lies on '+sc.name+', hidden in '+sc.country+'.')
             :'The needle turns gold — but every scroll is gathered, and it has nothing left to lie on.'); }
 }
 
@@ -11307,6 +11308,20 @@ const SCROLL_CAVE_APART=240;   /* units between two cave scrolls — some forty 
 function placeScrolls(){
   if(_scrollPlaced||!SITES.length) return; _scrollPlaced=true;
   for(const sc of SCROLLS){
+    /* ---- A SCROLL THE PEOPLE KEEP LIES NOWHERE (Phase B3) ----
+       It has no stone in the earth. It is reckoned at its keeper's land, so
+       the golden needle and THE LOG can say which way that land lies; it is
+       given in the talk, for work done for that land's people. A land not
+       on this earth keeps nothing, and the scroll is gone as any other is. */
+    /* `land` may name more than one, in order: the first that stands on this
+       earth keeps it. (Yahudah lies wholly inside the walls of Yahrushalayim
+       on the small map and raises no village of its own; her scribes are
+       found among the towns of Yasharal there.) */
+    if(sc.given){ let st=null;
+      for(const L of [].concat(sc.given.land)){ const ci=COUNTRIES.findIndex(c=>c.n===L);
+        if(ci>=0&&SITES[ci]){ st=SITES[ci]; sc.keeperLand=L; break; } }
+      if(!st){ sc.gone=true; continue; }
+      sc.x=st.x; sc.z=st.z; sc.m=null; sc.placed='given'; continue; }
     /* ---- A NAMED PLACE OVERRIDES THE COUNTRY AND ITS BEARING ---- */
     if(sc.at&&sc.at.mount){
       const p=scrollAtMount(sc.at.mount);
@@ -11371,7 +11386,7 @@ function placeScrolls(){
 function updateScrolls(px,pz){
   if(!_scrollPlaced) return;
   for(const sc of SCROLLS){
-    if(sc.gone) continue;
+    if(sc.gone||sc.given) continue;            /* (a kept scroll has no stone to stand on) */
     const near=Math.hypot(sc.x-px,sc.z-pz)<620 && !scrollTaken.has(sc.id);
     if(near&&!sc.m){
       /* if the town has since raised a wall, a stall or a well over the very
@@ -11402,7 +11417,7 @@ function nearestScrollProp(){
     if(Math.hypot(sc.x-w.x,sc.z-w.z)<9) return sc; }
   return null;
 }
-function takeScroll(sc){
+function takeScroll(sc,from){
   if(!sc||scrollTaken.has(sc.id)) return;
   scrollTaken.add(sc.id);
   if(sc.m){ scene.remove(sc.m); freeTree(sc.m); sc.m=null; }
@@ -11418,7 +11433,7 @@ function takeScroll(sc){
       z:p.z, out:openBearing(p.x,fy,p.z,state.walk.heading), line:[sc.verse.t, sc.verse.ref] });
   }
   const left=SCROLLS.filter(x=>!x.gone&&!scrollTaken.has(x.id)).length;
-  toast(sc.name+' \u2014 '+sc.words+(left
+  toast((from||'')+sc.name+' \u2014 '+sc.words+(left
     ? '  ('+scrollTaken.size+' of '+SCROLLS.filter(x=>!x.gone).length+' scrolls gathered \u2014 the golden needle lies on the next.)'
     : '  EVERY SCROLL IS GATHERED. The whole of it is open to you.'), sc.book);
   saveState();
@@ -14568,7 +14583,7 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
   for(let w2=1;w2<(cfg.wells||1);w2++){ const a=rnd(w2+70)*6.28, rr=B*(6+w2*3);
     const wx=cx+Math.cos(a)*rr, wz=cz+Math.sin(a)*rr, c=landAtWorld(wx,wz);
     if(c&&c.kind!=='wall'&&rectFree(wx-B*1.7,wx+B*1.7,wz-B*1.7,wz+B*1.7,B*0.5)){
-      stamped(ex,()=>emitWell(G,wx,wz,c.h*B));
+      stamped(ex,()=>emitWell(G,wx,wz,c.h*B)); if(ex.wells) ex.wells.push({x:wx,z:wz});
       solids.push({x:wx,z:wz,r:B*1.7});
       addRect(wx-B*1.7,wx+B*1.7,wz-B*1.7,wz+B*1.7); } }
   /* lamp posts along the streets */
@@ -14717,7 +14732,9 @@ function* spawnVillage(i,exShell){
      a step in the way of every soul going in, and was the house's weak point
      in every probe of the folk going home. Every house of a town is built as
      the story builds its own. */
-  Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null,stamps:[],
+  /* (the wells and the threshing floors are written down as they are laid: the work of
+     the people is done at them, Phase B) */
+  Object.assign(ex,{doors:[],houses:[],torchIn:[],farms:[],stalls:[],pen:null,stamps:[],wells:[{x:site.x,z:site.z}],floors:[],
     style:houseStyleFor(siteCountry(i)), ci:siteCountry(i), big:true});
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
@@ -14919,7 +14936,7 @@ function* spawnVillage(i,exShell){
         if(!best||hi-lo<best.sp){ best={hx,hz,sp:hi-lo}; if(hi-lo<=1) break; } }
       if(!best||best.sp>3) continue;
       const {hx,hz}=best, cw=landAtWorld(hx,hz), wy2=cw.h*B;
-      stamped(ex,()=>{ clearLotOfTrees(hx-B*3,hz-B*3,hx+B*3,hz+B*3,wy2); emitWell(G,hx,hz,wy2); });
+      stamped(ex,()=>{ clearLotOfTrees(hx-B*3,hz-B*3,hx+B*3,hz+B*3,wy2); emitWell(G,hx,hz,wy2); }); ex.wells.push({x:hx,z:hz});
       solids.push({x:hx,z:hz,r:B*1.5}); addRect(hx-B*1.5,hx+B*1.5,hz-B*1.5,hz+B*1.5);
       const nHouse=3+(rnd(820+hm)>0.5?1:0); let built=0;
       for(let k=0;k<nHouse;k++){ const a2=k/nHouse*Math.PI*2+rnd(830+hm)*0.6, r2=B*9;
@@ -14965,7 +14982,7 @@ function* spawnVillage(i,exShell){
         stamped(ex,()=>emitFarm(G,fx,fz,fc.h*B,i*100+80+f*2+k)); addRect(fx-B*2.6,fx+B*2.6,fz-B*1.8,fz+B*1.8);
         ex.farms.push({x:fx,z:fz}); }
       /* the threshing floor, beside the house */
-      { const tx=hx+bz*B*7.5, tz=hz-bx*B*7.5, r=2;
+      { const tx=hx+bz*B*7.5, tz=hz-bx*B*7.5, r=2; ex.floors.push({x:tx,z:tz});
         for(let a=-r;a<=r;a++) for(let b2=-r;b2<=r;b2++){ if(a*a+b2*b2>r*r+1) continue;
           const ix=Math.floor(tx/B)+a, iz=Math.floor(tz/B)+b2, c=cell(ix,iz); if(!c||c.kind==='wall') continue;
           emitTop(G,'hewnStone', ix*B+0.04,iz*B+0.04,(ix+1)*B-0.04,(iz+1)*B-0.04, c.h*B+0.06, 0.95); } }
@@ -15105,7 +15122,7 @@ function* spawnVillage(i,exShell){
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     placedAt.push({x:hx,z:hz});
     const ent=Object.assign({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,
-      pt:0,acting:false,seed,child:!!child,female:!!female,home:null,
+      pt:0,acting:false,seed,child:!!child,female:!!female,home:null,vi:i,
       name:personName(seed,female)},data||{});
     people.push(ent); return ent; };
   /* the teacher, and the children who gather for the lesson and play at tag */
@@ -15229,9 +15246,11 @@ function* spawnVillage(i,exShell){
   scene.add(g);
   activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses,solids,
     farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,stamps:ex.stamps,ways:ex.ways||(ex.ways=[]),mounts,feedT:-99,hamlets:ex.hamlets||[],trade:!!ex.trade,caravanserai:ex.caravanserai||null,sites:ex.sites||[],
+    wells:ex.wells||[],floors:ex.floors||[],
     /* how far its houses, farmsteads and hamlets reach from the well — every quick
        "is this near that town" test asks it, not the old fixed 420 (Round 137) */
     reach:Math.max(420,...ex.houses.map(H=>Math.hypot((H.x0+H.x1)/2-site.x,(H.z0+H.z1)/2-site.z)+B*14))});
+  jobsOnRaise(i);                        /* the stray and the wolf of the work in hand, raised with their town */
 }
 /* =================== THE LABOURS OF THE PEOPLE ===================
    A little task engine. moveEnt walks a body toward its mark with
@@ -15966,7 +15985,7 @@ function nextTask(ent,vv){
       break; }
     case 'herder': { const pen=flockHome(vv,hour)||ent.pen||site;    /* the pasture by day, the fold at evening */
       let stray=null,bd=0;
-      for(const b of vv.beasts||[]){ if(!FLOCK_KINDS.has(b.kind)) continue;
+      for(const b of vv.beasts||[]){ if(!FLOCK_KINDS.has(b.kind)||b.jobId) continue;   /* (the stray of a job is the traveller's to find) */
         const d2=Math.hypot(b.m.position.x-pen.x,b.m.position.z-pen.z);
         if(d2>bd){ bd=d2; stray=b; } }
       if(stray&&bd>B*(flockOut(hour)?9:5)){ ent.drive=stray; ent.tx=stray.m.position.x; ent.tz=stray.m.position.z; ent.actT=0.7; ent.anim='idle'; }
@@ -16038,6 +16057,17 @@ function personTick(ent,vv,dt){
      everyone in: weather is not hours. */
   const hour=vv.hour!==undefined?vv.hour:localHourAt(site.x,site.z);
   ent._abed=window.BEHAVIOR?!BEHAVIOR.folkAwake(ent.role,hour):(worldNight>0.55);
+  /* ---- A SOUL SPOKEN TO STANDS AND ANSWERS (Phase B2) ----
+     While the talk is open he leaves his errand where it is, turns to the
+     traveller and talks with his hands; the talk keeps this topped up every
+     frame, and when it closes he takes his work up again from where he stands */
+  if(ent._talkT>0&&!ent._abed&&!ent._lying&&!ent._riding){ ent._talkT-=dt;
+    const px=ent.m.position.x, pz=ent.m.position.z;
+    if(state.mode==='walk') ent.m.rotation.y=Math.atan2(state.walk.x-px,state.walk.z-pz);
+    ent.tx=px; ent.tz=pz; ent._path=null; ent._detour=null;
+    if(!ent._sat){ u.armR.rotation.x=-0.5+Math.sin(tnow*2.1)*0.45; u.armL.rotation.x=-0.15;
+      if(u.legs){ u.legs[0].rotation.x=0; u.legs[1].rotation.x=0; } }
+    return; }
   /* ---- WHERE THE CLOCK SAYS (Round 137) ----
      THE FAULT THIS MENDS. A village is raised when the traveller comes near
      and was raised the same at every hour: every soul set down at its work.
@@ -16244,7 +16274,8 @@ function beastTick(ent,vv,dt){
   const m=ent.m, px=m.position.x, pz=m.position.z, tnow=performance.now()*0.001;
   ent.t-=dt; ent.panic=false;
   let sp=4.5;
-  if(ent.kind==='wolf'){
+  if(ent.jobId!==undefined){ const s2=jobBeastAim(ent,vv,dt); if(s2<0) return; sp=s2; }   /* the stray and the wolf of a job (Phase B) */
+  else if(ent.kind==='wolf'){
     ent.cool=(ent.cool||0)-dt;
     /* the shepherd and the hunter drive the wolf off */
     let guard=null;
@@ -16255,7 +16286,7 @@ function beastTick(ent,vv,dt){
       ent.tx=px+(px-guard.m.position.x)/dd*30; ent.tz=pz+(pz-guard.m.position.z)/dd*30; }
     else if(ent.cool<=0){
       if(!ent.hunt||!ent.hunt.m.visible||Math.random()<dt*0.05){ let best=null,bd=1e9;
-        for(const b of vv.beasts){ if(b===ent||!WOLF_PREY.has(b.kind)) continue;
+        for(const b of vv.beasts){ if(b===ent||!WOLF_PREY.has(b.kind)||b.jobId) continue;
           const d2=Math.hypot(b.m.position.x-px,b.m.position.z-pz); if(d2<bd){bd=d2;best=b;} }
         ent.hunt=best; }
       if(ent.hunt){ sp=9.5; ent.tx=ent.hunt.m.position.x; ent.tz=ent.hunt.m.position.z;
@@ -16570,11 +16601,14 @@ function closeTrade(){ if(!tradeOpen) return; tradeOpen=false; $('trade').style.
   saveState(); }
 function renderTrade(){
   const tier=tradeSea?null:repTier(tradeProfile);
+  /* and the goodwill of the town (Phase B): its market leans toward a friend */
+  const gt=tradeSea?null:gwTier(gwOf(siteKeyOf(tradeProfile)));
   $('trade-sub').textContent=tradeTitle+' — your purse: '+state.coins+' shekels · cargo '+cargoCount()+' / '+CARGO_MAX
-    +(tier?' · your name is '+tier+' here':'');
+    +(tier?' · your name is '+tier+' here':'')
+    +(gt?' · the town counts you '+gt[1]+': its prices lean your way':'');
   const T=$('trade-rows'); T.innerHTML='';
   for(let gi=0;gi<GOODS.length;gi++){
-    const g=GOODS[gi], {buy,sell}=spreadOf(priceAt(tradeProfile,gi),tradeSea);
+    const g=GOODS[gi], {buy,sell}=dealOf(tradeProfile,gi,tradeSea);
     const have=state.cargo[g.k]||0;
     const tr=document.createElement('tr');
     tr.innerHTML='<td class="g">'+g.n+'</td><td class="r">held '+have+'</td>'+
@@ -16594,15 +16628,23 @@ function renderTrade(){
   tr3.innerHTML='<td class="g">Pearls of the deep</td><td class="r">held '+(state.pearls||0)+'</td><td class="r"></td>'+
     '<td class="r"><button class="tbtn" data-a="e" '+((state.pearls||0)<1?'disabled':'')+'>sell '+pp+'</button></td>';
   T.appendChild(tr3);
+  /* a parcel carried to THIS market for its merchant is handed over across the counter */
+  if(!tradeSea){ jobState(); const vk=siteKeyOf(tradeProfile);
+    for(const j of state.jobs) if(j.kind==='carry'&&j.status==='taken'&&j.target&&j.target.vk===vk&&(!j.to||j.to.indexOf('vendor')>=0)){
+      const trj=document.createElement('tr');
+      trj.innerHTML='<td class="g">'+escH(capFirst(j.parcel))+' (for this market, from '+escH(giverWord(j))+')</td><td class="r"></td><td class="r"></td>'+
+        '<td class="r"><button class="tbtn" data-a="dlv" data-g="'+j.id+'">deliver · '+j.pay+'</button></td>';
+      T.appendChild(trj); } }
 }
 /* ONE hand on every deal — the button and the acceptance suite call the
    same function (the setDoor pattern), so a test can drive a real trade
    instead of trusting the arithmetic it cannot reach in a click handler */
 function tradeAct(a,gi){
+  if(a==='dlv'){ const j=jobById(gi); if(j&&!tradeSea&&j.target&&j.target.vk===siteKeyOf(tradeProfile)) carryDeliver(j,'the merchant of '+j.target.name); return; }
   if(a==='f'){ if((state.fish||0)>0){ state.fish--; state.coins+=fishSellPrice(); addRep(tradeProfile,1); } }
   else if(a==='g'){ if((state.game||0)>0){ state.game--; state.coins+=gameSellPrice(); addRep(tradeProfile,1); } }
   else if(a==='e'){ if((state.pearls||0)>0){ state.pearls--; state.coins+=pearlSellPrice(); addRep(tradeProfile,3); } }
-  else { const g=GOODS[gi], p=priceAt(tradeProfile,gi), sp=spreadOf(p,tradeSea);
+  else { const g=GOODS[gi], p=priceAt(tradeProfile,gi), sp=dealOf(tradeProfile,gi,tradeSea);
     if(a==='b'){ if(state.coins>=sp.buy&&cargoCount()<CARGO_MAX){ state.coins-=sp.buy; state.cargo[g.k]=(state.cargo[g.k]||0)+1; } }
     else { const sell=(window.__INJECT&&__INJECT.mintSpread)?Math.round(p*1.15):sp.sell;   /* the fault put back: sell over buy */
       if((state.cargo[g.k]||0)>0){ state.cargo[g.k]--; if(!state.cargo[g.k]) delete state.cargo[g.k]; state.coins+=sell; } } }
@@ -16645,13 +16687,13 @@ function nearestTrader(){
    Sleep at home · open and shut doors · go below to the hold and up again ·
    speak with the people of the land · cast a line and fish the waters. */
 let promptAction=null, promptPerson=null, promptScroll=null;
-function nearbyPerson(){
+function nearbyPerson(reach){
   if(state.mode!=='walk') return null;
-  let best=null,bd=1e9;
+  let best=null,bd=1e9; reach=reach||7;
   for(const[,vv] of activeVillages){ if(vv.none||!vv.people||!vv.site) continue;
     if(Math.hypot(state.walk.x-vv.site.x,state.walk.z-vv.site.z)>(vv.reach||420)) continue;
     for(const p of vv.people){ const d=Math.hypot(state.walk.x-p.m.position.x,state.walk.z-p.m.position.z);
-      if(d<7&&d<bd){ bd=d; best=p; } } }
+      if(d<reach&&d<bd){ bd=d; best=p; } } }
   return best;
 }
 function canFishHere(){
@@ -16675,7 +16717,7 @@ function promptTick(){
   promptScroll=nearestScrollProp();
   promptMount=null;   /* it was the one mark not cleared — a stale mount could linger */
   let label=null;
-  if(tradeOpen){ show(false); return; }
+  if(tradeOpen||talkOpen){ show(false); return; }
   if(state.mode==='dive'){
     promptPearl=nearestPearl();
     if(promptPearl){ el.textContent='F — gather the pearl'; show(true); promptAction='pearl'; }
@@ -16715,6 +16757,16 @@ function promptTick(){
       const stallShut=promptStall&&!stallOpen(promptStall.s);
       if(stallShut){ if(promptStall.d<7){ label='the stall is shut — its keeper has gone home'; promptAction='none'; } promptStall=null; }
       promptMount=nearestMount(state.walk.x,state.walk.z);
+      /* the deeds of the work in hand (Phase B): the floor, the well, the
+         jars at the door, the stray found — they are the thing he came for */
+      promptJob=jobPromptAt();
+      if(promptJob){ label=promptJob.label; promptAction='job'; }
+      /* ---- THE MERCHANT AT HIS OWN COUNTER CAN BE SPOKEN TO ----
+         The stall's widest catchment (13) reached past its own keeper, who
+         stands a little behind it, so a man come to talk with the merchant was
+         only ever offered the counter. A soul within arm's length is spoken
+         to first; the talk has the same market in it, and the work besides. */
+      const atArm=(promptStall&&promptStall.d>=7)?nearbyPerson(4.6):null;
       /* a stall STOOD AT wins over a door eleven units off — in a packed
          market square the widest catchment (13) had the lowest word, and a
          trader standing at his own counter was told to open somebody's door */
@@ -16723,6 +16775,7 @@ function promptTick(){
       else if(promptScroll){ label='F \u2014 take up the scroll'; promptAction='scroll'; }
       else if(promptDoor){ label='F — '+(promptDoor.door.open?'close the door':'open the door'); promptAction='door'; }
       else if(promptMount){ label='F — mount the '+promptMount.kind; promptAction='ride'; }
+      else if(atArm){ promptPerson=atArm; label='F — speak · ask for work · trade'; promptAction='speak'; }
       else if(promptStall){ label='F — trade at the stall'; promptAction='trade'; }
       else { promptPerson=nearbyPerson();
         /* THE PIER HEAD BELONGS TO THE ROD. The village fisher stands pinned
@@ -16732,9 +16785,10 @@ function promptTick(){
            soul in reach is the working fisher, the cast wins; everyone else
            still stops you for a word first. */
         const fishable=canFishHere();
-        if(promptPerson&&!(fishable&&promptPerson.role==='fisher')){ label='F — speak'; promptAction='speak'; }
+        const sayF=(canTalk()&&promptPerson&&!promptPerson.child&&!promptPerson._abed)?'F — speak · ask for work · trade':'F — speak';
+        if(promptPerson&&!(fishable&&promptPerson.role==='fisher')){ label=sayF; promptAction='speak'; }
         else if(fishable){ label='F — cast a line'; promptAction='fish'; promptPerson=null; }
-        else if(promptPerson){ label='F — speak'; promptAction='speak'; } }
+        else if(promptPerson){ label=sayF; promptAction='speak'; } }
     }
   }
   if(!label&&state.mode==='fly'&&canTouchDome()){ label='F \u2014 touch the firmament'; promptAction='dome'; }
@@ -16814,19 +16868,578 @@ function speakTo(p){ if(!p) return;
   if(p._lying){ wakeSleeper(p,6);
     toast(who+' wakes, and lifts '+(p.female?'her':'his')+' head — “Mm? It is the middle of the night, friend. Let a soul sleep.”'); return; }
   if(p._abed){ toast(who+' — “It is late, friend, and I am for my bed. Come and find me in the morning.”'); return; }
-  const lines=SPEECH[p.role]||SPEECH.folk;
-  const now=performance.now()*0.001;
-  if(!p.talk||now-p.talk.t>25) p.talk={idx:0,t:now};
-  p.talk.t=now;
-  let line;
-  if(p.talk.idx<lines.length) line=lines[p.talk.idx];
-  else if(p.talk.idx===lines.length&&!p.child) line=rumourLine();
-  else { line='“Go in peace, friend of the sea.”'; p.talk.idx=-1; }
-  p.talk.idx++;
+  const line=speechLine(p);
   p.m.rotation.y=Math.atan2(state.walk.x-p.m.position.x,state.walk.z-p.m.position.z);
   p.pt=Math.max(p.pt||0,3.5); p.tx=p.m.position.x; p.tz=p.m.position.z;   /* stand and talk a moment */
   toast((p.name?p.name+' the '+callingOf(p)+' — ':'')+line);
 }
+/* ================= THE WORK OF THE PEOPLE (ROADMAP Phase B) =================
+   "The labourer is worthy of his hire."
+
+   THE FAULT THIS MENDS. Speaking to a soul of the town gave a trade line, a
+   rumour of the nearest coast, and "Go in peace" — and that was all a people
+   who worked from first light to dark had to say to a stranger. Nobody asked
+   anything of him, nobody paid him for anything, and a town he had served was
+   no different from one he had never entered.
+
+   Now a man stopped in the street is TALKED WITH (B2): he may speak with him
+   as before, ask him for work, or trade with him at his town's own prices.
+   The work is that trade's own (B1, world/jobs.js), and it is done with the
+   world's own hands — the grain is beaten out on a threshing floor of the
+   farmsteads, the strayed sheep is a beast standing out past the fields, the
+   wolf is a wolf at the fold that runs from a man coming at it or falls to
+   his spear, the water is drawn at the well and carried to the door, the
+   timber and the stone are in the satchel because they were cut and broken.
+   NOTHING IS FINISHED BY A WORD: the engine reads what was done, and a job
+   that is not done does not pay.
+
+   What it pays is shekels and the GOODWILL of the giver's town — kept in the
+   log by town, and worth something small and real there: the market's prices
+   lean his way, its people greet him as a friend, and one who is trusted is
+   told where a scroll is spoken of. And some scrolls (B3, world/scrolls.js
+   `given`) are not in the earth at all: a scribe, an elder, a merchant or a
+   widow keeps them, and gives them to one who has worked for their land. */
+const JOB_DEFS=(window.EARTH&&EARTH.jobList)||[];
+const JOB_BY_K=Object.create(null); for(const d of JOB_DEFS) JOB_BY_K[d.k]=d;
+const JOB_MAX=3;                 /* works a man may have in hand at once */
+const JOB_DONE_KEEP=12;          /* how many finished works THE LOG still names */
+const GW_MAX=60;
+/* the goodwill a town bears him, and what it is worth there: the name it
+   gives him, and how far its market leans his way on a deal */
+const GW_TIERS=[[30,'honoured',0.10],[15,'trusted',0.06],[5,'known',0.03]];
+function jobState(){ if(!state.jobs) state.jobs=[]; if(!state.jobsDone) state.jobsDone=[];
+  if(!state.works) state.works={}; if(!state.gw) state.gw={}; if(!state.jobSeq) state.jobSeq=0; }
+/* ---- A TOWN IS KNOWN BY ITS NAME, NOT BY ITS PLACE IN A LIST ----
+   The market's reputation is kept by site index, which holds while the world
+   is built the same way. A town's goodwill and the work done for it are kept
+   by NAME — a land by its own, a town of the land (Phase T6) by its own — so
+   a save carried between the small map and the true earth keeps them. */
+function siteKeyOf(i){ const s=SITES[i]; if(!s||i<0) return null;
+  return i<COUNTRIES.length?'land:'+COUNTRIES[i].n:'town:'+(s.name||(s.town&&s.town.n)||i); }
+let _siteKeyIdx=null;
+function siteOfKey(k){ if(!k) return -1;
+  if(!_siteKeyIdx||_siteKeyIdx.n!==SITES.length){ _siteKeyIdx=new Map(); _siteKeyIdx.n=SITES.length;
+    for(let i=0;i<SITES.length;i++){ const kk=siteKeyOf(i); if(kk&&!_siteKeyIdx.has(kk)) _siteKeyIdx.set(kk,i); } }
+  const v=_siteKeyIdx.get(k); return v===undefined?-1:v; }
+function siteName(i){ const cfg=cityFor(i); if(cfg&&cfg.name) return cfg.name;
+  const s=SITES[i]; if(s&&s.name) return s.name; return COUNTRIES[siteCountry(i)].n; }
+function landOfSite(i){ return COUNTRIES[siteCountry(i)].n; }
+function gwOf(vk){ return (state.gw&&vk&&state.gw[vk])||0; }
+function gwTier(n){ for(const t of GW_TIERS) if(n>=t[0]) return t; return null; }
+function gwAdd(vk,n){ if(!vk) return; jobState(); state.gw[vk]=Math.max(0,Math.min(GW_MAX,gwOf(vk)+n)); }
+/* ---- THE MARKET LEANS HIS WAY WHERE HE IS KNOWN ----
+   One price for a deal, asked by the stall, the talk and the probe alike: the
+   land's own spread, and where his name is known a little off the buy and a
+   little on the sell. It NEVER mints coins — the sell is held a shekel under
+   the buy, the law test 65 keeps — and at sea there is no town to know him. */
+function dealOf(profile,gi,sea){
+  const sp=spreadOf(priceAt(profile,gi),sea);
+  if(sea) return sp;
+  const t=gwTier(gwOf(siteKeyOf(profile))); if(!t) return sp;
+  let buy=Math.round(sp.buy*(1-t[2])), sell=Math.round(sp.sell*(1+t[2]));
+  buy=Math.max(buy,sp.sell+1); sell=Math.max(sp.sell,Math.min(sell,buy-1));
+  return {buy,sell};
+}
+/* the way to a place, as the people say it: which of the eight winds, with
+   north toward the midst of the earth (the convention of rumourLine) */
+function windTo(fx,fz,tx,tz){
+  const pu=fx/R_WORLD, pv=fz/R_WORLD, rr=Math.hypot(pu,pv)||1e-9;
+  const nX=-pu/rr, nZ=-pv/rr, eX=pv/rr, eZ=-pu/rr, dx=tx-fx, dz=tz-fz;
+  const ang=Math.atan2(dx*eX+dz*eZ, dx*nX+dz*nZ);
+  return COMPASS8[(Math.round(ang/(Math.PI/4))+8)%8]; }
+/* and how far: a walk about a town in paces (the men's own measure, which
+   is the same on either map), a road between towns in the map's km — on the
+   small map a land is drawn smaller than its people, and the two are not the
+   same measure, so each distance is said in the one it was walked in */
+function paceWord(d){ return Math.max(10,Math.round(d/U_PER_M_WORLD/10)*10).toLocaleString()+' paces'; }
+function roadWord(d){ const km=d/U_PER_KM; return km<1?'a little under a km':(km<10?km.toFixed(1):Math.round(km).toLocaleString())+' km'; }
+function farWord(d){ return d<1500?paceWord(d):roadWord(d); }
+function jobFill(s,j){ const d=JOB_BY_K[j.k]||{}, w=d.what||['',''];
+  return String(s||'').replace(/\{(\w+)\}/g,(m,k)=>{
+    if(k==='n') return j.n; if(k==='what') return j.n===1?w[0]:w[1]; if(k==='pay') return j.pay;
+    if(k==='town') return j.target?j.target.name:''; if(k==='dir') return j.dir||(j.target&&j.target.dir)||'';
+    if(k==='km') return j.target?j.target.far:''; if(k==='beast') return j.beast||'sheep';
+    if(k==='place') return j.place||'the threshing floor'; if(k==='who') return j.giver.name;
+    return m; }); }
+function jobById(id){ jobState(); return state.jobs.find(j=>j.id===id)||null; }
+function giverWord(j){ return j.giver.name+' the '+j.giver.calling; }
+function townWord(j){ const i=siteOfKey(j.vk); return i>=0?siteName(i):j.vk.replace(/^\w+:/,''); }
+/* the soul of a town a job came from, if his town is standing about the traveller */
+function jobGiverIn(j,vv){ if(!vv||!vv.people) return null;
+  return vv.people.find(p=>p.seed===j.giver.seed&&p.role===j.giver.role)
+      || vv.people.find(p=>p.name===j.giver.name&&p.role===j.giver.role)||null; }
+function sameGiver(j,p){ return siteKeyOf(p.vi)===j.vk&&p.seed===j.giver.seed&&p.role===j.giver.role; }
+/* ---- THE WORK A TRADE HAS TO GIVE, AND WHETHER THIS TOWN CAN HAVE IT DONE ----
+   A herder with no fold has no stray to lose, and a town that laid no
+   threshing floor sends the reaper to its field; a job is offered only where
+   the world holds what doing it needs. */
+function jobPlaces(vv){ return (vv.floors&&vv.floors.length)?{list:vv.floors,word:'the threshing floor'}
+  :(vv.farms&&vv.farms.length)?{list:vv.farms,word:'the field'}:null; }
+function flockKindOf(vv){ for(const b of vv.beasts||[]) if(FLOCK_KINDS.has(b.kind)&&b.kind!=='pig'&&!b.jobId) return b.kind; return 'sheep'; }
+function carryTargets(vi){ const me=SITES[vi]; if(!me) return [];
+  const out=[];
+  for(let i=0;i<SITES.length;i++){ const s=SITES[i]; if(!s||i===vi) continue;
+    out.push({i,d:Math.hypot(s.x-me.x,s.z-me.z)}); }
+  out.sort((a,b)=>a.d-b.d); return out.slice(0,4); }
+/* a lonely patch of the country, out past the fields: where a stray stands */
+function straySpot(vv,seed){
+  const S=vv.site, P=settleProfile(S);
+  for(let tr=0;tr<40;tr++){
+    const a=hash2(seed*0.37+tr*1.7,seed*0.11-tr*0.9)*Math.PI*2;
+    const r=P.core+B*6+hash2(seed*0.53-tr,tr*2.3+seed*0.07)*Math.max(B*10,P.ring-P.core-B*6);
+    const x=S.x+Math.cos(a)*r, z=S.z+Math.sin(a)*r, c=landAtWorld(x,z);
+    if(!c||c.kind==='wall'||c.kind==='floe'||c.lake!==undefined) continue;
+    if(treeBlocked(x,z)||blockedBySolid(x,z,B)||houseAround(x,z)) continue;
+    const g=groundInfo(x,z); if(!g.land) continue;
+    return {x,z}; }
+  return null; }
+function jobOffer(p,onlyK){
+  if(!p||p.child) return {none:'“Work? I am too small — ask my mother.”'};
+  const vv=activeVillages.get(p.vi); if(!vv||!vv.people) return {none:null};
+  jobState();
+  const vk=siteKeyOf(p.vi), mine=state.jobs.find(j=>sameGiver(j,p));
+  if(mine) return {have:mine};
+  if(state.jobs.length>=JOB_MAX) return {none:'“You have work enough in hand already, friend. Finish what you carry, and come back to me.”'};
+  const defs=JOB_DEFS.filter(d=>onlyK?d.k===onlyK:(d.trades&&d.trades.indexOf(p.role)>=0)).filter(d=>{
+    if(d.kind==='gather') return !!jobPlaces(vv);
+    if(d.kind==='carry') return carryTargets(p.vi).length>0;
+    if(d.kind==='stray'||d.kind==='wolf') return !!vv.pen&&!state.jobs.some(j=>j.vk===vk&&j.kind===d.kind);
+    if(d.kind==='draw') return !!(vv.wells&&vv.wells.length);
+    return true; });
+  if(!defs.length) return {none:'“There is nothing I need done just now — but the town is full of work. Ask at another door.”'};
+  const r=k=>hash2((p.seed||1)*0.731+state.jobSeq*1.37+k,(p.seed||1)*0.217-k*3.1);
+  const d=defs[Math.floor(r(1)*defs.length)%defs.length];
+  const nr=d.n||[1,1], n=nr[0]+Math.floor(r(2)*(nr[1]-nr[0]+1));
+  const j={id:0, k:d.k, kind:d.kind, vk, land:landOfSite(p.vi), n:d.kind==='stray'||d.kind==='wolf'||d.kind==='carry'?1:n, have:0,
+    status:'taken', gw:d.gw||3,
+    giver:{seed:p.seed,name:p.name,role:p.role,female:!!p.female,calling:callingOf(p)}};
+  let pay=(d.pay&&d.pay.base)||10;
+  if(d.pay&&d.pay.per) pay+=d.pay.per*j.n;
+  if(d.kind==='gather'){ j.place=jobPlaces(vv).word; }
+  if(d.kind==='carry'){ const T=carryTargets(p.vi), t=T[Math.floor(r(3)*T.length)%T.length], s=SITES[t.i];
+    j.target={vk:siteKeyOf(t.i),name:siteName(t.i),dir:windTo(vv.site.x,vv.site.z,s.x,s.z),far:roadWord(t.d)};
+    j.parcel=d.parcel||'a parcel'; j.to=d.to||null;
+    pay+=Math.round(Math.min((d.pay&&d.pay.max)||90,((d.pay&&d.pay.perKm)||0)*t.d/U_PER_KM)); }
+  if(d.kind==='stray'){ const at=straySpot(vv,(p.seed||1)+state.jobSeq*7.7); if(!at) return {none:'“My flock is all in, thank the Most High. There is nothing lost today.”'};
+    j.at=at; j.beast=flockKindOf(vv); j.dir=windTo(vv.site.x,vv.site.z,at.x,at.z); }
+  if(d.kind==='wolf'){ const P=vv.pen, a=Math.atan2(P.z-vv.site.z,P.x-vv.site.x)+(r(4)-0.5);
+    j.at={x:P.x+Math.cos(a)*B*8,z:P.z+Math.sin(a)*B*8}; }
+  if(d.kind==='draw'){ const H=p.home;
+    j.jar=H?(H.ox!==undefined?{x:H.ox,z:H.oz}:{x:H.x,z:H.z}):{x:vv.site.x+B*3,z:vv.site.z};
+    j.carry=false; }
+  if(d.kind==='bring') j.ids=(d.ids||[]).slice();
+  j.pay=Math.round(pay);
+  return {offer:j, ask:jobFill(d.ask,j)};
+}
+function jobTake(j){
+  jobState(); if(state.jobs.length>=JOB_MAX) return false;
+  j.id=++state.jobSeq; j.t=state.simHours; state.jobs.push(j);
+  const vi=siteOfKey(j.vk), vv=activeVillages.get(vi);
+  if(vv&&vv.beasts) jobBeastSpawn(j,vv);
+  saveState(); return true;
+}
+/* the work as THE LOG says it */
+function jobTask(j){ const d=JOB_BY_K[j.k]; return jobFill(d?d.task:j.k,j); }
+/* ---- WHERE THE WORK STANDS, read off the world and never off a flag alone ---- */
+function jobCount(j){
+  if(j.kind==='bring'){ let n=0; for(const id of j.ids||[]) n+=satchelCount(id); return n; }
+  if(j.kind==='catch') return state.fish||0;
+  if(j.kind==='gather') return (j.have||0)+((state.cargo&&state.cargo.grain)||0);
+  return j.have||0; }
+function jobHandable(j){
+  if(j.status==='ready') return true;
+  if(j.kind==='bring'||j.kind==='catch'||j.kind==='gather') return jobCount(j)>=j.n;
+  return false; }
+function jobProgress(j){
+  const p=playerXZ();
+  if(j.status==='ready') return 'done — go back to '+giverWord(j)+' at '+townWord(j)+' to be paid';
+  switch(j.kind){
+    case 'gather': return (j.have||0)+' of '+j.n+' beaten out'+(((state.cargo&&state.cargo.grain)||0)?' (and '+state.cargo.grain+' grain in the hold)':'')
+      +(jobHandable(j)?' — enough: take it to '+j.giver.name:'');
+    case 'bring': { const n=jobCount(j); return n+' of '+j.n+' in your satchel'+(n>=j.n?' — enough: take them to '+j.giver.name:''); }
+    case 'catch': return (state.fish||0)+' of '+j.n+' in the creel'+((state.fish||0)>=j.n?' — enough: take them to '+j.giver.name:'');
+    case 'draw': return (j.have||0)+' of '+j.n+' jars poured'+(j.carry?' · a jar of water in your hands':'');
+    case 'carry': { const ti=siteOfKey(j.target.vk), s=SITES[ti];
+      return 'you carry '+j.parcel+(s?' · '+j.target.name+' lies '+roadWord(Math.hypot(s.x-p.x,s.z-p.z))+' to the '+windTo(p.x,p.z,s.x,s.z):''); }
+    case 'stray': { const vv=activeVillages.get(siteOfKey(j.vk)), b=vv&&vv.beasts&&vv.beasts.find(e=>e.jobId===j.id);
+      if(b&&b.led) return 'the '+j.beast+' follows you — lead it to the fold';
+      return 'it stands out in the country, '+farWord(Math.hypot(j.at.x-p.x,j.at.z-p.z))+' to the '+windTo(p.x,p.z,j.at.x,j.at.z)+' of you'; }
+    case 'wolf': return 'it prowls about the fold at '+townWord(j);
+  }
+  return ''; }
+/* ---- THE PAY, AND THE TOWN REMEMBERS ---- */
+function jobPay(j,payer){
+  jobState();
+  state.coins+=j.pay; gwAdd(j.vk,j.gw);
+  state.works[j.land]=(state.works[j.land]||0)+1;
+  state.jobsDoneN=(state.jobsDoneN||0)+1;
+  j.status='done'; j.tDone=state.simHours; j.paidBy=payer||null;
+  state.jobs=state.jobs.filter(o=>o!==j);
+  state.jobsDone.unshift({k:j.k,task:jobTask(j),giver:giverWord(j),town:townWord(j),pay:j.pay,gw:j.gw,land:j.land});
+  if(state.jobsDone.length>JOB_DONE_KEEP) state.jobsDone.length=JOB_DONE_KEEP;
+  const g=gwOf(j.vk), t=gwTier(g);
+  let msg=(payer||giverWord(j))+' counts '+j.pay+' shekels into your hand. Purse: '+state.coins+'. The goodwill of '+townWord(j)
+    +' rises to '+g+(t?' — your name is '+t[1]+' there':'')+'.';
+  /* and the keeper of a scroll in this land hears of it */
+  for(const sc of SCROLLS){ const G=sc.given; if(!G||sc.gone||scrollTaken.has(sc.id)||keeperLand(sc)!==j.land) continue;
+    if(state.works[j.land]===G.works){ msg+=' Word of your work reaches '+G.who+', who keeps '+sc.name+' — go and speak with '+(G.by==='water'?'her':'him')+'.'; break; } }
+  toast(msg);
+  saveState();
+  return msg; }
+/* hand the work over to the one who gave it: what it took is TAKEN */
+function jobHandOver(j,p){
+  if(!jobHandable(j)) return null;
+  if(j.kind==='bring'){ let left=j.n; for(const id of j.ids||[]){ if(left<=0) break; left-=satchelTake(id,Math.min(left,satchelCount(id))); }
+    if(left>0) return null; beltDraw(); satchelTouch(); }
+  else if(j.kind==='catch'){ state.fish-=j.n; }
+  else if(j.kind==='gather'){ const from=Math.min(j.have||0,j.n), rest=j.n-from;
+    if(rest>0){ state.cargo.grain-=rest; if(!state.cargo.grain) delete state.cargo.grain; } j.have=0; }
+  return jobPay(j,p?p.name+' the '+callingOf(p):null); }
+function jobDrop(j){ jobState(); state.jobs=state.jobs.filter(o=>o!==j);
+  const vv=activeVillages.get(siteOfKey(j.vk)); if(vv) jobBeastsGone(vv,j.id);
+  gwAdd(j.vk,-1); saveState(); }
+/* ---- A PARCEL COMES TO THE MAN IT WAS SENT TO ----
+   Taken by one of the trades the job names at the far town — the merchant
+   for cloth, the teacher for a letter — and where that town has no such soul
+   standing, by any grown soul of it, so a parcel is never undeliverable. */
+function carryDue(p){ jobState();
+  if(!p||p.child) return [];
+  const vk=siteKeyOf(p.vi), vv=activeVillages.get(p.vi);
+  return state.jobs.filter(j=>j.kind==='carry'&&j.status==='taken'&&j.target&&j.target.vk===vk&&(
+    !j.to||j.to.indexOf(p.role)>=0||!(vv&&vv.people&&vv.people.some(o=>!o.child&&j.to.indexOf(o.role)>=0)))); }
+function carryDeliver(j,who){ if(!j||j.kind!=='carry'||j.status!=='taken') return null;
+  return jobPay(j,who||('the merchant of '+j.target.name)); }
+/* ---- THE BEASTS OF THE WORK ----
+   The stray and the wolf are beasts of the town like any other, standing in
+   its own list and drawn in its own group — so they go with the town when it
+   is left behind, and are raised again with it (jobsOnRaise) for as long as
+   the work stands. */
+function jobBeastSpawn(j,vv){
+  if(j.status!=='taken'||(j.kind!=='stray'&&j.kind!=='wolf')||!j.at) return;
+  if(vv.beasts.some(b=>b.jobId===j.id)) return;
+  const kind=j.kind==='wolf'?'wolf':(j.beast||'sheep');
+  const an=makeAnimal(kind);
+  const g=groundInfo(j.at.x,j.at.z);
+  an.position.set(j.at.x,g.land?g.y:topY(Math.floor(j.at.x/B),Math.floor(j.at.z/B)),j.at.z);
+  vv.g.add(an);
+  vv.beasts.push({m:an,kind,hx:j.at.x,hz:j.at.z,tx:j.at.x,tz:j.at.z,t:1+hash2(j.id,3.3)*2,seed:9000+j.id*13,
+    roamR:1,jobId:j.id,_born:true,cool:0});
+}
+function jobBeastsGone(vv,id){ if(!vv||!vv.beasts) return;
+  for(let k=vv.beasts.length-1;k>=0;k--){ const b=vv.beasts[k]; if(b.jobId!==id) continue;
+    b.m.visible=false; vv.g.remove(b.m); vv.beasts.splice(k,1); } }
+function jobsOnRaise(i){ jobState(); const vv=activeVillages.get(i); if(!vv||!vv.beasts) return;
+  const vk=siteKeyOf(i);
+  for(const j of state.jobs) if(j.vk===vk) jobBeastSpawn(j,vv); }
+function jobReady(j,msg){ if(j.status!=='taken') return; j.status='ready'; toast(msg); saveState(); }
+/* the aim of a beast of the work, every frame: the speed it goes at, or -1
+   when it has left the town's list for good */
+function jobBeastAim(ent,vv,dt){
+  const j=jobById(ent.jobId);
+  if(!j||j.status!=='taken'){
+    if(ent.kind==='wolf'||!vv.pen){ jobBeastsGone(vv,ent.jobId); return -1; }
+    ent.jobId=undefined; ent.led=false; ent.hx=vv.pen.x; ent.hz=vv.pen.z; ent.roamR=4; ent.driven=true; return 6; }
+  const px=ent.m.position.x, pz=ent.m.position.z, w=state.walk, walking=state.mode==='walk';
+  const dP=walking?Math.hypot(w.x-px,w.z-pz):1e9;
+  if(j.kind==='stray'){
+    if(ent.led){
+      if(dP>B*14||!walking){ ent.led=false; ent.hx=px; ent.hz=pz;
+        toast('The '+j.beast+' has lost sight of you, and stands where it is. Go back for it — on foot, for it cannot keep up with a rider.'); }
+      else {
+        const a=Math.atan2(px-w.x,pz-w.z); ent.tx=w.x+Math.sin(a)*B*1.4; ent.tz=w.z+Math.cos(a)*B*1.4;
+        j.at={x:px,z:pz};
+        const P=vv.pen;
+        if(P&&Math.hypot(px-P.x,pz-P.z)<B*4){
+          ent.led=false; ent.jobId=undefined; ent.hx=P.x; ent.hz=P.z; ent.roamR=4;
+          jobReady(j,'The '+j.beast+' goes in among the flock at the fold of '+townWord(j)+'. Go and tell '+giverWord(j)+'.');
+          return 4; }
+        return dP>B*1.9?Math.min(17,4+dP*0.5):0; } }
+    /* grazing where it strayed, a few steps this way and that; it does not
+       fear the man come looking for it — it has been looking for a man */
+    if(ent.t<=0){ ent.t=2+Math.random()*3; const a=Math.random()*6.28;
+      ent.tx=ent.hx+Math.cos(a)*B*0.8; ent.tz=ent.hz+Math.sin(a)*B*0.8; }
+    return 2.5; }
+  if(j.kind==='wolf'){
+    const P=vv.pen||vv.site, S=vv.site;
+    ent.cool=(ent.cool||0)-dt;
+    /* ---- IT RUNS FROM THE MAN WHO COMES AT IT ----
+       Bold with the herdsman, it breaks before a stranger who walks straight
+       at it: away from him and away from the houses, into the country, and
+       once it is far out past the fold it does not come back. A man who stops
+       short has only turned it, and it creeps back to the flock. */
+    if(dP<B*3.6) ent.flee=2.8; else ent.flee=(ent.flee||0)-dt;
+    if(ent.flee>0){
+      let ax=(px-w.x)/(dP||1), az=(pz-w.z)/(dP||1);
+      const dS=Math.hypot(px-S.x,pz-S.z)||1; ax+=(px-S.x)/dS*0.8; az+=(pz-S.z)/dS*0.8;
+      const L=Math.hypot(ax,az)||1; ent.tx=px+ax/L*40; ent.tz=pz+az/L*40; ent.panic=true; ent.hunt=null;
+      if(Math.hypot(px-P.x,pz-P.z)>B*30){ jobBeastsGone(vv,j.id);
+        jobReady(j,'The wolf breaks for the hills and is gone. The fold of '+townWord(j)+' is safe — tell '+giverWord(j)+'.');
+        return -1; }
+      return 11; }
+    /* about the fold, and at the flock when it sees its chance */
+    if(ent.cool<=0){
+      if(!ent.hunt||!ent.hunt.m.visible||Math.random()<dt*0.05){ let best=null,bd=1e9;
+        for(const b of vv.beasts){ if(b===ent||b.jobId||!WOLF_PREY.has(b.kind)) continue;
+          const d2=Math.hypot(b.m.position.x-px,b.m.position.z-pz); if(d2<bd&&d2<B*20){bd=d2;best=b;} }
+        ent.hunt=best; }
+      if(ent.hunt){ ent.tx=ent.hunt.m.position.x; ent.tz=ent.hunt.m.position.z;
+        if(Math.hypot(px-ent.tx,pz-ent.tz)<2.6){ ent.hunt.driven=true; ent.hunt.hop=0.5; ent.hunt=null; ent.cool=8+Math.random()*8; ent.t=0; }
+        return 9; } }
+    if(ent.t<=0){ ent.t=2+Math.random()*3; const a=Math.random()*6.28, r2=B*(6+Math.random()*4);
+      ent.tx=P.x+Math.cos(a)*r2; ent.tz=P.z+Math.sin(a)*r2; }
+    return 6; }
+  return 4.5; }
+/* the spear took the wolf of a job */
+function jobWolfSpeared(id){ const j=jobById(id); if(!j) return;
+  jobReady(j,'Your spear finds the wolf at the fold — it will trouble the flock of '+townWord(j)+' no more. Go and tell '+giverWord(j)+'.'); }
+/* ---- THE DEEDS OF THE WORK ON THE ONE KEY ----
+   What can be done for a job where he stands: beat out a measure on the
+   floor, draw at the well, pour at the door, take the stray in hand. Asked
+   by the prompt every frame, and cheap — three jobs at most, a few places. */
+let promptJob=null;
+function jobPromptAt(){
+  if(state.mode!=='walk'||!state.jobs||!state.jobs.length) return null;
+  const w=state.walk;
+  for(const j of state.jobs){ if(j.status!=='taken') continue;
+    const vi=siteOfKey(j.vk), vv=activeVillages.get(vi); if(!vv||vv.none||!vv.site) continue;
+    if(j.kind==='gather'&&(j.have||0)<j.n){ const P=jobPlaces(vv); if(!P) continue;
+      for(const f of P.list) if(Math.hypot(w.x-f.x,w.z-f.z)<B*2.8)
+        return {j,act:'gather',label:'F — beat out a measure of grain for '+j.giver.name+' ('+((j.have||0)+1)+' of '+j.n+')'}; }
+    if(j.kind==='draw'&&(j.have||0)<j.n){
+      if(j.carry||satchelCount('water-bucket')>0){
+        if(Math.hypot(w.x-j.jar.x,w.z-j.jar.z)<B*2.4)
+          return {j,act:'pour',label:'F — pour '+(j.carry?'the jar':'your bucket')+' into '+j.giver.name+'’s jars ('+((j.have||0)+1)+' of '+j.n+')'}; }
+      if(!j.carry) for(const wl of vv.wells||[]) if(Math.hypot(w.x-wl.x,w.z-wl.z)<B*2.6)
+        return {j,act:'draw',label:'F — draw a jar of water for '+j.giver.name}; }
+    if(j.kind==='stray'){ const b=vv.beasts&&vv.beasts.find(e=>e.jobId===j.id);
+      if(b&&!b.led&&Math.hypot(w.x-b.m.position.x,w.z-b.m.position.z)<B*1.6)
+        return {j,act:'lead',label:'F — take the strayed '+j.beast+' and lead it home'}; }
+  }
+  return null; }
+let _jobStroke=0;
+function jobAct(J){ if(!J||!J.j) return; const j=J.j; const now=performance.now()*0.001;
+  if(J.act==='gather'){ if(now-_jobStroke<0.7) return; _jobStroke=now;
+    swingOnce(); noiseAt(state.walk.x,state.walk.z,B*5);
+    j.have=(j.have||0)+1;
+    if(j.have>=j.n){ toast('The last measure is beaten out and winnowed — '+j.n+' measures of grain. Take them to '+giverWord(j)+'.'); }
+    else toast('You beat the sheaves with the flail and winnow the grain on the wind — a measure ('+j.have+' of '+j.n+').');
+    saveState(); return; }
+  if(J.act==='draw'){ j.carry=true; swingOnce();
+    toast('You let down the bucket and draw up a jar of sweet water. Bear it to '+j.giver.name+'’s door, where the great jars stand.'); return; }
+  if(J.act==='pour'){
+    if(!j.carry){ if(satchelTake('water-bucket',1)<1) return; satchelAdd('bucket',1); beltDraw(); satchelTouch(); }
+    j.carry=false; j.have=(j.have||0)+1; swingOnce();
+    if(j.have>=j.n) jobReady(j,'The great jars at '+j.giver.name+'’s door stand full to the brim — '+j.n+' jars. Go and tell her.');
+    else { toast('You pour the water into the jars ('+j.have+' of '+j.n+'). Back to the well for the next.'); saveState(); }
+    return; }
+  if(J.act==='lead'){ const vv=activeVillages.get(siteOfKey(j.vk)), b=vv&&vv.beasts.find(e=>e.jobId===j.id);
+    if(!b) return; b.led=true; b.hop=0.5;
+    toast('The '+j.beast+' lifts its head at your voice, and comes. Lead it home to the fold of '+townWord(j)+' — walk, and it follows.'); return; }
+}
+/* ---- THE LOG KEEPS IT, AND THE SAVE KEEPS THE LOG ---- */
+function jobsForSave(){ jobState();
+  return {jb:state.jobs.map(j=>Object.assign({},j)), jd:state.jobsDone.slice(0,JOB_DONE_KEEP),
+    wk:Object.assign({},state.works), gw:Object.assign({},state.gw), js:state.jobSeq, jn:state.jobsDoneN||0}; }
+/* read back out of a save; a job naming a kind of work this build no longer
+   has is let go of rather than guessed at, and places are carried to the
+   same spot of the map as everything else in an old save (`sc`) */
+function jobsFromSave(o,sc){
+  state.jobs=[]; state.jobsDone=[]; state.works={}; state.gw={}; state.jobSeq=0; state.jobsDoneN=0;
+  if(!o) return;
+  sc=sc||1;
+  const P=q=>q&&isFinite(q.x)&&isFinite(q.z)?{x:q.x*sc,z:q.z*sc}:q;
+  for(const j of (o.jb||[])){ if(!j||!JOB_BY_K[j.k]||!j.giver||!j.vk) continue;
+    if(['taken','ready'].indexOf(j.status)<0) continue;
+    const c=Object.assign({},j); c.at=P(c.at); c.jar=P(c.jar); c.carry=!!c.carry;
+    state.jobs.push(c); if(state.jobs.length>=JOB_MAX) break; }
+  if(Array.isArray(o.jd)) state.jobsDone=o.jd.slice(0,JOB_DONE_KEEP);
+  if(o.wk&&typeof o.wk==='object') state.works=Object.assign({},o.wk);
+  if(o.gw&&typeof o.gw==='object') state.gw=Object.assign({},o.gw);
+  state.jobSeq=Math.max(+o.js||0,...state.jobs.map(j=>j.id||0),0);
+  state.jobsDoneN=+o.jn||0; }
+/* and a voyage begun anew leaves no wolf of the old one at anybody's fold */
+function jobsReset(){ for(const[,vv] of activeVillages){ if(!vv||!vv.beasts) continue;
+    for(let k=vv.beasts.length-1;k>=0;k--){ const b=vv.beasts[k]; if(b.jobId===undefined) continue;
+      if(b.kind==='wolf'||b.jobId){ b.m.visible=false; vv.g.remove(b.m); vv.beasts.splice(k,1); } } }
+  jobsFromSave(null); }
+/* ---- THE SCROLLS THE PEOPLE KEEP (Phase B3) ----
+   Which scroll this soul keeps for the traveller, if any: one of his trade, in
+   his land, not yet given. Two kept in one land by one trade are given in
+   their order — the fewer works first, which is the chain. */
+function scrollKeptBy(p){ if(!p||p.child) return null;
+  const land=landOfSite(p.vi); let best=null;
+  for(const sc of SCROLLS){ const G=sc.given; if(!G||sc.gone||scrollTaken.has(sc.id)) continue;
+    if(keeperLand(sc)!==land||G.by!==p.role) continue;
+    if(!best||G.works<best.given.works) best=sc; }
+  return best; }
+function worksIn(land){ return (state.works&&state.works[land])||0; }
+/* the land a kept scroll is kept in, on this earth (see placeScrolls) */
+function keeperLand(sc){ return sc.keeperLand||[].concat(sc.given.land)[0]; }
+function giveScroll(sc,p){
+  if(!sc||scrollTaken.has(sc.id)||worksIn(keeperLand(sc))<sc.given.works) return false;
+  takeScroll(sc,(p?p.name+', '+sc.given.who+', puts it in your hands: ':'Given you by '+sc.given.who+': '));
+  return true; }
+/* ================= TALKING WITH THE PEOPLE (ROADMAP Phase B2) =================
+   F before a soul of the town no longer fires one line into the corner of the
+   screen. It stops him, turns him to face the traveller, and opens the talk:
+   SPEAK (his trade's words, the rumour of a coast, and — to a man his town
+   trusts — where a scroll is spoken of), ASK FOR WORK (a job that fits his
+   trade, or the one already given), and TRADE (the town's own market, at the
+   town's own prices, which lean toward a friend). What the work and the
+   scrolls ask of the moment — hand the work over, deliver a parcel sent here,
+   receive a scroll that is owed — stands beside them as it comes due.
+   Walk away, press F or ESC, and the talk is over; he goes back to his work. */
+let talkOpen=false, talkP=null, talkOfferNow=null, talkSaid='', talkNote='';
+const TALK_REACH=16;
+function canTalk(){ return !window.__STORY_HOST&&!window.__HOST_BOOT&&!!$('talk'); }
+function capFirst(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+function escH(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const NUM_WORDS=['no','one','two','three','four','five','six','seven','eight','nine','ten'];
+function numWord(n){ return NUM_WORDS[n]||String(n); }
+/* where a scroll that lies in the earth lies, as a man would tell it */
+function scrollWhere(sc){
+  if(sc.placed==='cave') return 'deep in a cave'+(sc.at&&sc.at.near?' of '+sc.at.near:'')+', in '+sc.country;
+  if(sc.placed==='mount'&&sc.at) return 'on the height of '+sc.at.mount;
+  if(sc.at&&sc.at.landmark) return 'by '+sc.at.landmark;
+  return 'on open ground out past the town of '+sc.country; }
+/* ---- THE TRUSTED ARE TOLD ----
+   A town that trusts the traveller tells him what it knows of the nearest
+   scroll still out in the world: where it lies, or who keeps it. */
+function scrollRumour(p){
+  const vv=activeVillages.get(p.vi), S=(vv&&vv.site)||playerXZ();
+  let best=null,bd=1e18;
+  for(const sc of SCROLLS){ if(sc.gone||scrollTaken.has(sc.id)||!isFinite(sc.x)) continue;
+    const d=Math.hypot(sc.x-S.x,sc.z-S.z); if(d<bd){ bd=d; best=sc; } }
+  if(!best) return null;
+  if(best.given) return '“Since you are a friend: they say '+best.given.who+' keeps '+best.name+', and gives it to one who has worked for the people of '+keeperLand(best)+'.”';
+  return '“Since you are a friend: they say '+best.name+' lies '+scrollWhere(best)+', '+farWord(bd)+' away to the '+windTo(S.x,S.z,best.x,best.z)+'. You did not hear it from me.”'; }
+/* the next thing a soul has to say, deeper each time he is asked */
+function speechLine(p){
+  const lines=SPEECH[p.role]||SPEECH.folk;
+  const now=performance.now()*0.001;
+  if(!p.talk||now-p.talk.t>25) p.talk={idx:0,t:now};
+  p.talk.t=now;
+  const t=p.child?null:gwTier(gwOf(siteKeyOf(p.vi)));
+  const told=!!t&&t[0]>=15;                     /* trusted, or honoured */
+  const i=p.talk.idx; let line=null;
+  if(i<lines.length) line=lines[i];
+  else if(i===lines.length&&!p.child) line=rumourLine();
+  else if(i===lines.length+1&&told) line=scrollRumour(p);
+  if(!line){ line='“Go in peace, friend of the sea.”'; p.talk.idx=-1; }
+  p.talk.idx++;
+  return line; }
+/* the first word, warmer as the town comes to know him */
+function talkGreeting(p){
+  const t=p.child?null:gwTier(gwOf(siteKeyOf(p.vi))), town=siteName(p.vi);
+  if(!t){ const g=window.BEHAVIOR&&BEHAVIOR.folkGreet?BEHAVIOR.folkGreet(p.role,p.role==='child'&&p.anim==='sit'):null;
+    return g?'“'+g+'”':'“Peace to you, traveller.”'; }
+  if(t[1]==='honoured') return '“Come in, come in — there is bread on the table for the friend of '+town+'. What can this house do for you?”';
+  if(t[1]==='trusted') return '“Ah, it is you! '+town+' has not forgotten what you did for us. Sit a while.”';
+  return '“Peace to you, friend — they speak well of your work in '+town+'.”'; }
+function openTalk(p){
+  if(!p) return;
+  if(!canTalk()||p._lying||p._abed){ speakTo(p); return; }
+  if(tradeOpen) closeTrade();
+  talkOpen=true; talkP=p; talkOfferNow=null; talkNote='';
+  talkSaid=talkGreeting(p);
+  p._talkT=0.5;
+  $('talk').style.display='block'; renderTalk(); }
+function closeTalk(){ if(!talkOpen) return; talkOpen=false;
+  if(talkP) talkP._talkT=0; talkP=null; talkOfferNow=null; $('talk').style.display='none'; }
+/* walk off, sail, fall asleep in a scene — and the talk is over */
+function talkGuard(){ if(!talkOpen) return; const p=talkP;
+  if(!p||!p.m||state.mode!=='walk'||cut||state.firm||p._abed||p._lying
+     ||Math.hypot(state.walk.x-p.m.position.x,state.walk.z-p.m.position.z)>TALK_REACH){ closeTalk(); return; }
+  p._talkT=0.4; }
+function talkAskWork(){ const p=talkP; if(!p) return;
+  const r=jobOffer(p);
+  if(r.have){ const j=r.have;
+    talkSaid=jobHandable(j)?'“You have done it? Then give it here.”'
+      :'“Have you forgotten already? '+capFirst(jobTask(j))+'. — '+capFirst(jobProgress(j))+'.”'; talkOfferNow=null; }
+  else if(r.offer){ talkOfferNow=r.offer; talkSaid=r.ask; }
+  else { talkOfferNow=null; talkSaid=r.none||'“There is no work here today.”'; }
+  renderTalk(); }
+function talkTake(){ const p=talkP, j=talkOfferNow; if(!p||!j) return;
+  talkOfferNow=null;
+  if(jobTake(j)){ talkSaid='“Good. Go with the Most High, and come back to me when it is done.”';
+    talkNote='Written in THE LOG (L): '+jobTask(j)+' — '+j.pay+' shekels.';
+    toast('The work is yours, and written in THE LOG (L): '+jobTask(j)+'.'); }
+  else talkSaid='“You have work enough in hand already, friend.”';
+  renderTalk(); }
+function renderTalk(){
+  const p=talkP; if(!p) return;
+  jobState();
+  const vk=siteKeyOf(p.vi), town=siteName(p.vi), land=landOfSite(p.vi), g=gwOf(vk), t=gwTier(g);
+  const sc=scrollKeptBy(p), she=p.female?'she':'he', him=p.female?'her':'him';
+  $('talk-who').textContent=(p.name?p.name+' the ':'The ')+callingOf(p)+(sc?' — '+sc.given.who:'');
+  $('talk-sub').textContent=town+(town!==land?', in '+land:'')+' · the goodwill of '+town+': '+g
+    +(t?' ('+t[1]+')':'')+' · your purse: '+state.coins+' shekels';
+  $('talk-line').textContent=talkSaid;
+  const notes=[], main=[], more=[];
+  main.push(['Speak',()=>{ talkOfferNow=null; talkNote=''; talkSaid=speechLine(p); renderTalk(); }]);
+  if(!p.child){
+    main.push(['Ask for work',talkAskWork]);
+    main.push(['Trade',()=>{ closeTalk();
+      openTrade(p.vi,'the wares of '+(p.name||'a soul')+' the '+callingOf(p)+', at the prices of '+town,false); }]);
+    if(talkOfferNow){ more.push(['Take the work ('+talkOfferNow.pay+' shekels)',talkTake]);
+      more.push(['Not now',()=>{ talkOfferNow=null; talkSaid='“As you will. The work will keep.”'; renderTalk(); }]); }
+    for(const j of carryDue(p))
+      more.push(['Deliver '+j.parcel,()=>{ const m=carryDeliver(j,(p.name||'one')+' the '+callingOf(p));
+        talkSaid='“So it has come at last, and whole! Here is the carriage, as was agreed.”'; talkNote=m||''; renderTalk(); }]);
+    const mine=state.jobs.find(j=>sameGiver(j,p));
+    if(mine){ notes.push('Your work for '+him+': '+jobTask(mine)+' — '+jobProgress(mine)+'.');
+      if(jobHandable(mine)) more.unshift(['Hand over the work — '+mine.pay+' shekels',()=>{
+        const m=jobHandOver(mine,p);
+        talkSaid=m?'“It is well done — better than I hoped. Here, take your hire; you have earned it.”':'“That is not all of it, friend.”';
+        talkNote=m||''; renderTalk(); }]);
+      else more.push(['Give up the work',()=>{ jobDrop(mine); talkSaid='“Ah well. Another time, perhaps.”'; talkNote=''; renderTalk(); }]); }
+    if(sc){ const kl=keeperLand(sc), have=worksIn(kl), need=sc.given.works;
+      if(have>=need) more.unshift(['Receive '+sc.name,()=>{ closeTalk(); giveScroll(sc,p); }]);
+      else notes.push(capFirst(she)+' keeps '+sc.name+'. “Do '+numWord(need)+' work'+(need>1?'s':'')+' for the people of '
+        +kl+', and it is yours.” ('+have+' of '+need+' done in '+kl+')'); }
+  }
+  if(talkNote) notes.unshift(talkNote);
+  $('talk-note').innerHTML=notes.map(n=>'<div>'+escH(n)+'</div>').join('');
+  const A=$('talk-acts'); A.innerHTML='';
+  let k=0; const mk=(row,cls)=>{ const d=D.createElement('div'); d.className='trow'+(cls?' '+cls:'');
+    for(const [lab,fn] of row){ k++; const b=D.createElement('button'); b.className='tbtn';
+      b.innerHTML='<span class="k">'+k+'</span>'+escH(lab); b.onclick=e=>{ e.stopPropagation(); fn(); }; d.appendChild(b); }
+    A.appendChild(d); };
+  mk(main); if(more.length) mk(more,'due');
+}
+/* the number keys answer the talk while it is open, as the buttons do */
+function talkKey(n){ const bs=$('talk-acts').querySelectorAll('button'); const b=bs[n-1]; if(b) b.click(); }
+{ const tc=$('talk-close'); if(tc) tc.addEventListener('click',e=>{ e.stopPropagation(); closeTalk(); }); }
+/* ---- THE LOG OF THE WORK, AND OF THE SCROLLS ---- */
+function logWorkHTML(){ jobState();
+  let h='<h3>WORK IN HAND</h3>';
+  if(!state.jobs.length) h+='<div class="none">No work in hand — speak with the people of a town, and ask for work.</div>';
+  for(const j of state.jobs) h+='<div class="job'+(jobHandable(j)?' ready':'')+'"><b>'+escH(capFirst(jobTask(j)))+'</b>'
+    +'<div class="who">for '+escH(giverWord(j))+', of '+escH(townWord(j))+' · '+j.pay+' shekels and the town’s goodwill</div>'
+    +'<div class="pr">'+(jobHandable(j)?'✓ ':'')+escH(capFirst(jobProgress(j)))+'</div></div>';
+  h+='<h3>WORK DONE</h3>';
+  if(!state.jobsDone.length) h+='<div class="none">None yet.</div>';
+  else { h+='<div class="sum">'+(state.jobsDoneN||state.jobsDone.length)+' work'+((state.jobsDoneN||0)===1?'':'s')+' done'
+      +(Object.keys(state.works).length?' · '+Object.keys(state.works).map(l=>escH(l)+' '+state.works[l]).join(' · '):'')+'</div>';
+    for(const d of state.jobsDone.slice(0,6)) h+='<div class="done">✓ '+escH(capFirst(d.task))+' — for '+escH(d.giver)+', of '+escH(d.town)+' · paid '+d.pay+' shekels</div>'; }
+  const gk=Object.keys(state.gw||{}).filter(k=>state.gw[k]>0).sort((a,b)=>state.gw[b]-state.gw[a]);
+  h+='<h3>GOODWILL</h3>'+(gk.length?'<div class="gws">'+gk.map(k=>{ const t=gwTier(state.gw[k]);
+      return '<span class="gw"><b>'+escH(k.replace(/^\w+:/,''))+'</b> '+state.gw[k]+(t?' · '+t[1]:'')+'</span>'; }).join('')+'</div>'
+    :'<div class="none">No town knows your name yet.</div>');
+  return h; }
+function logScrollsHTML(){
+  const p=playerXZ(); let h='<h3>THE SCROLLS</h3>';
+  for(const sc of SCROLLS){ if(sc.gone) continue;
+    const got=scrollTaken.has(sc.id); let how;
+    if(got) how='gathered';
+    else if(sc.given){ const G=sc.given, kl=keeperLand(sc), have=worksIn(kl);
+      how='<span class="tag give">GIVEN</span> by '+escH(G.who)+', in '+escH(kl)+', after '+numWord(G.works)+' work'+(G.works>1?'s':'')
+        +' for its people — '+Math.min(have,G.works)+' of '+G.works+' done'+(have>=G.works?' · <b>it is ready for you</b>':'')
+        +(isFinite(sc.x)?' · '+escH(kl)+' lies '+escH(farWord(Math.hypot(sc.x-p.x,sc.z-p.z)))+' to the '+windTo(p.x,p.z,sc.x,sc.z):''); }
+    else how='<span class="tag lie">LIES</span> '+escH(scrollWhere(sc))
+      +(isFinite(sc.x)?' · '+escH(farWord(Math.hypot(sc.x-p.x,sc.z-p.z)))+' to the '+windTo(p.x,p.z,sc.x,sc.z):'');
+    h+='<div class="sc'+(got?' got':'')+'"><span class="m">'+(got?'✓':'·')+'</span><span class="w"><b>'+escH(sc.name)+'</b> <i>'+escH(sc.book)+'</i><br>'+how+'</span></div>'; }
+  return h; }
 /* ================= FISHING — CAST A LINE UPON THE WATERS ================= */
 /* ---- THE CATCH IS THE SEA'S OWN (Round 99) ----
    THE FAULT THIS MENDS. The catch was drawn from a literal of eight names —
@@ -17009,7 +17622,7 @@ function spearHit(){
       if(!BEAST_PREY.has(b.kind)&&b.kind!=='deer'&&b.kind!=='wolf') continue;
       if(near(b.m.position.x,b.m.position.z)&&Math.abs(b.m.position.y+3-spear.y)<8){
         b.m.visible=false; vv.g.remove(b.m); vv.beasts.splice(k,1);
-        return {kind:b.kind,village:vi}; } } }               /* whose beast fell matters now */
+        return {kind:b.kind,village:vi,job:b.jobId||null}; } } }   /* whose beast fell matters now — and whose work it was */
   for(const a of LANDLIFE){ if(!a.set||(!AMBIENT_PREY.has(a.kind)&&a.kind!=='wolf'&&a.kind!=='lion')) continue;
     if(near(a.x,a.z)&&Math.abs(a.m.position.y+3-spear.y)<9){ a.set=false; a.m.visible=false; return {kind:a.kind,village:null}; } }
   return null;
@@ -17048,10 +17661,13 @@ function spearTick(dt){
       if(kill){ state.game=(state.game||0)+1; spear.active=false; spear.stick=1.4;
         if(kill.kind==='wolf'){
           toast('Your spear finds the wolf — the flock is safe, and the pelt is yours. Game taken: '+state.game+'.');
-          if(kill.village!==null&&!(window.__INJECT&&__INJECT.noGrudge)) addRep(kill.village,REP_SPEAR_WOLF); }
+          if(kill.village!==null&&!(window.__INJECT&&__INJECT.noGrudge)) addRep(kill.village,REP_SPEAR_WOLF);
+          if(kill.job) jobWolfSpeared(kill.job); }
         else if(kill.village!==null&&!(window.__INJECT&&__INJECT.noGrudge)){
           toast('Your spear finds the '+kill.kind+' — but it was the village\'s own, and the village saw. Your name is worth less at this market.');
-          addRep(kill.village,-REP_SPEAR_FLOCK); }
+          addRep(kill.village,-REP_SPEAR_FLOCK);
+          /* and if it was the very stray he was sent to bring home, the work is lost with it */
+          if(kill.job){ const j=jobById(kill.job); if(j) jobDrop(j); } }
         else toast('Your spear finds the '+kill.kind+' — game taken for the voyage: '+state.game+'.');
         saveState(); break; }
       const gy=groundInfo(spear.x,spear.z);
@@ -18080,6 +18696,10 @@ addEventListener('keydown',e=>{ keys[e.code]=true;
      ends the passage and gives the world straight back. */
   if(cut&&(e.code==='Escape'||e.code==='KeyF'||e.code==='Space')){
     e.preventDefault(); endScene(); return; }
+  /* the talk is left with ESC before ESC pauses, and while it is open the
+     number keys choose in it instead of taking a token from the belt */
+  if(talkOpen&&!cut){ if(e.code==='Escape'){ e.preventDefault(); closeTalk(); return; }
+    if(e.code.indexOf('Digit')===0){ e.preventDefault(); talkKey(+e.code.slice(5)); return; } }
   /* P (or ESC, outside a scene) pauses the whole game and gives it back */
   if(e.code==='KeyP'||(e.code==='Escape'&&!cut)){ e.preventDefault(); togglePause(); return; }
   if(gamePaused) return;                      /* a paused world takes no orders */
@@ -18554,6 +19174,7 @@ function sleep(){
 function interact(){
   if(state.firm) return;                        /* no verbs from behind the map view */
   if(tradeOpen){ closeTrade(); return; }        /* F also leaves the trading */
+  if(talkOpen){ closeTalk(); return; }          /* and the talk */
   switch(promptAction){
     case 'scroll': takeScroll(promptScroll); updateGuideBtn(); break;
     case 'ashore': toggleAshore(); break;
@@ -18564,7 +19185,8 @@ function interact(){
     case 'up': state.deck.level='deck'; state.deck.lx=2.4*SHIP_SX; state.deck.lz=HATCH.z+3*SHIP_S; break;
     case 'ride': mountUp(promptMount); break;
     case 'dismount': dismount(false); break;
-    case 'speak': speakTo(promptPerson); break;
+    case 'speak': openTalk(promptPerson); break;
+    case 'job': jobAct(promptJob); break;
     case 'enc': encounterAct(); break;
     case 'fish': startFishing(); break;
     case 'reel': reelIn(); break;
@@ -20856,7 +21478,11 @@ async function saveState(){
        given. The satchel is written slot by slot — the ORDER is his, he
        arranged it, and a save that re-sorted his belt would be a save that
        rearranged his hands. */
-    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), gr:GRID.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN]});
+    sa:SATCHEL.map(sl=>sl?[sl.id,sl.n]:0), gr:GRID.map(sl=>sl?[sl.id,sl.n]:0), sp:[...SPOKEN],
+    /* the work of the people (Phase B): the jobs in hand, the last done, the
+       works counted by land (the scrolls the people keep are owed by these),
+       and the goodwill of every town that knows his name */
+    ...jobsForSave()});
   try{ localStorage.setItem(SAVE_KEY,payload); }catch(e){}
   try{ if(window.storage) await window.storage.set(SAVE_KEY,payload); }catch(e){}
 }
@@ -21060,12 +21686,16 @@ function toggleLog(){
     'Fish drawn from the deep: <b>'+(state.fish||0)+'</b> · Game taken by the spear: <b>'+(state.game||0)+'</b> · Pearls: <b>'+(state.pearls||0)+'</b><br>'+
     'Scrolls gathered: <b>'+scrollTaken.size+' / '+SCROLLS.filter(x=>!x.gone).length+'</b>'+
       (function(){ const nx=nextScroll();
-        return nx?' \u2014 next: <b>'+nx.name+'</b>, in '+nx.country:' \u2014 <b>all found</b>'; })()+'<br>'+
+        return nx?' \u2014 next: <b>'+nx.name+'</b>, '+(nx.given?'kept by '+nx.given.who:'in '+nx.country):' \u2014 <b>all found</b>'; })()+'<br>'+
+    'Works done for the people: <b>'+(state.jobsDoneN||0)+'</b> · in hand: <b>'+((state.jobs&&state.jobs.length)||0)+' / '+JOB_MAX+'</b><br>'+
     'Day of the voyage: <b>'+dayOfYear()+'</b><br>'+
     (function(){ const nl=nextLandfall();
       return nl?('Next landfall: <b>'+nl.n+'</b> — away to the <b>'+nl.dir+'</b>, some '+nl.km.toLocaleString()+' km over the deep.')
                :'<b>The voyage is fulfilled</b> — every land under the shamayim is written in this log.'; })();
   $('log-lands').textContent=names.length?names.join(' \u00B7 '):'No land yet \u2014 the deep awaits.';
+  /* the work of the people and the scrolls, each in its own section (Phase B) */
+  { const w=$('log-work'); if(w) w.innerHTML=logWorkHTML(); }
+  { const sl=$('log-scrolls'); if(sl) sl.innerHTML=logScrollsHTML(); }
 }
 $('b-log').onclick=toggleLog;
 { const gb=$('b-guide'); if(gb) gb.onclick=toggleGuide; }
@@ -21505,6 +22135,8 @@ async function begin(fresh,roam){
   state.camYaw=0; state.camPitch=0.42; state.camYawVel=0; state.camPitchVel=0;
   camClear=1; camFloor=-1e9;
   scrollTaken.clear(); pearlTaken.clear(); wreckLooted.clear();
+  jobsReset();                                    /* no job, and no wolf of one, from a voyage before */
+  if(talkOpen) closeTalk();
   GUIDE.mode='scroll';
   if(window.SEASON&&SEASON.clear) SEASON.clear();
 
@@ -21530,6 +22162,10 @@ async function begin(fresh,roam){
     if(saved.dp!==undefined&&DAYPARTS[saved.dp]){ state.dayIdx=saved.dp; updateDayBtn(); }
     state.freeroam=!!saved.fr;
     if(saved.sr) for(const k of saved.sr) scrollTaken.add(k);
+    /* the work in hand and the goodwill of the towns, carried to the same
+       spot of the map as the rest of the log (Phase B) */
+    jobsFromSave(saved,R_WORLD/(saved.R||120000));
+    for(const[vi] of activeVillages) jobsOnRaise(vi);
     /* v8 — and what he was carrying, in the order he had it. A slot naming a
        substance this build no longer knows is dropped rather than guessed at:
        the block table is read by ID for exactly this reason. */
@@ -22668,6 +23304,49 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
       beasts:best.vv.beasts.map(b=>({kind:b.kind,x:b.m.position.x,y:b.m.position.y,z:b.m.position.z,sleep:!!b._sleep,driven:!!b.driven,
         tx:b.tx,tz:b.tz,blk:b._blk||'',stuck:b.stuck||0,panic:!!b.panic,path:b._path?{n:b._path.pts.length,i:b._path.i,partial:b._path.partial}:null}))}; },
   startFishing:()=>startFishing(),
+  /* ---- THE WORK OF THE PEOPLE, FOR tools/acceptance.js (Phase B) ----
+     Every deed here is the deed the hand does: the offer is the giver's own
+     offer, the take is the take, the stroke on the floor is asked of the very
+     prompt the key answers, and the pay is the hand-over the talk calls. A
+     probe only says WHO — a soul of the nearest town, by his index — because
+     a click in a headless page cannot. */
+  jobDefs:()=>JOB_DEFS.map(d=>({k:d.k,kind:d.kind,trades:d.trades.slice()})),
+  jobsNow:()=>{ jobState(); return {jobs:JSON.parse(JSON.stringify(state.jobs)),done:JSON.parse(JSON.stringify(state.jobsDone)),
+    works:Object.assign({},state.works),gw:Object.assign({},state.gw),n:state.jobsDoneN||0,coins:state.coins}; },
+  jobVillage:()=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[vi,vv] of activeVillages){ if(vv.none||!vv.people||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best={vi,vv}; } }
+    if(!best) return null; const vv=best.vv;
+    return {vi:best.vi,vk:siteKeyOf(best.vi),name:siteName(best.vi),land:landOfSite(best.vi),site:{x:vv.site.x,z:vv.site.z},
+      pen:vv.pen?{x:vv.pen.x,z:vv.pen.z}:null,floors:(vv.floors||[]).slice(),farms:(vv.farms||[]).map(f=>({x:f.x,z:f.z})),wells:(vv.wells||[]).slice(),
+      people:vv.people.map((e,i)=>({i,name:e.name,role:e.role,child:!!e.child,abed:!!e._abed,x:e.m.position.x,z:e.m.position.z,seed:e.seed}))}; },
+  _jobPerson:i=>{ let best=null,bd=1e18; const p=playerXZ();
+    for(const[,vv] of activeVillages){ if(vv.none||!vv.people||!vv.site) continue;
+      const d=(vv.site.x-p.x)**2+(vv.site.z-p.z)**2; if(d<bd){ bd=d; best=vv; } }
+    return best&&best.people[i]||null; },
+  jobOfferOf:(i,k)=>{ const r=jobOffer(window.__VDBG._jobPerson(i),k); return r.offer?{offer:JSON.parse(JSON.stringify(r.offer)),ask:r.ask}:{none:r.none||null,have:r.have?r.have.id:null}; },
+  jobTakeOf:(i,k)=>{ const r=jobOffer(window.__VDBG._jobPerson(i),k); if(!r.offer) return null; return jobTake(r.offer)?r.offer.id:null; },
+  jobPrompt:()=>{ const J=jobPromptAt(); return J?{id:J.j.id,act:J.act,label:J.label}:null; },
+  jobPress:()=>{ const J=jobPromptAt(); if(!J) return null; _jobStroke=0; jobAct(J); return J.act; },
+  jobHandOverOf:(id,i)=>{ const j=jobById(id); if(!j) return null; return jobHandOver(j,i===undefined?null:window.__VDBG._jobPerson(i)); },
+  jobHandable:id=>{ const j=jobById(id); return j?jobHandable(j):null; },
+  jobBeast:id=>{ for(const[,vv] of activeVillages){ if(!vv.beasts) continue; const b=vv.beasts.find(e=>e.jobId===id);
+      if(b) return {kind:b.kind,x:b.m.position.x,y:b.m.position.y,z:b.m.position.z,led:!!b.led}; } return null; },
+  jobProgressOf:id=>{ const j=jobById(id); return j?jobProgress(j):null; },
+  jobsSaveForm:()=>JSON.parse(JSON.stringify(jobsForSave())),
+  jobsRestore:o=>{ jobsFromSave(o,1); for(const[vi] of activeVillages) jobsOnRaise(vi); },
+  gwSet:(vk,n)=>{ jobState(); state.gw[vk]=n; },
+  gwOf:vk=>gwOf(vk),
+  dealAt:(profile,sea)=>GOODS.map((g,gi)=>{ const d=dealOf(profile,gi,!!sea); return {k:g.k,buy:d.buy,sell:d.sell}; }),
+  worksSet:(land,n)=>{ jobState(); state.works[land]=n; },
+  openTalkTo:i=>openTalk(window.__VDBG._jobPerson(i)),
+  talkView:()=>talkOpen?{who:$('talk-who').textContent,sub:$('talk-sub').textContent,line:$('talk-line').textContent,
+    note:$('talk-note').textContent,buttons:[...$('talk-acts').querySelectorAll('button')].map(b=>b.textContent)}:null,
+  talkPress:n=>talkKey(n),
+  closeTalk:()=>closeTalk(),
+  scrollKeptBy:i=>{ const sc=scrollKeptBy(window.__VDBG._jobPerson(i)); return sc?{id:sc.id,name:sc.name,given:sc.given,land:keeperLand(sc)}:null; },
+  logHTML:()=>{ if(!logOpen) toggleLog(); const h={work:$('log-work').innerHTML,scrolls:$('log-scrolls').innerHTML,stats:$('log-stats').innerHTML}; return h; },
+  logClose:()=>{ if(logOpen) toggleLog(); },
   reelIn:()=>reelIn(),
   endFishing:q=>endFishing(q),
   toolSpeedOf:id=>toolSpeed(BLOCK_BY_ID[id]),
@@ -25148,6 +25827,7 @@ function frame(){ orgSnap();
   } else { rain.visible=false; if(ENC.kind&&ENC.models[ENC.kind]) ENC.models[ENC.kind].visible=false;
     for(const b of BARKS){ b.ent=null; b.sp.visible=false; } }
   tradeGuard();
+  talkGuard();                   /* the talk ends when he walks away (Phase B2) */
   updateScrolls(p.x,p.z);        /* the scrolls stand in their places */
   guideTick(dt);                 /* and the compass needle lies on the next of them */
   cameraTick(dt);
