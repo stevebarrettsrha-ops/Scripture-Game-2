@@ -9562,11 +9562,15 @@ function personHeadMats(sk,HR,EY){
    story — the skin, hair and eyes it names, a robe of its colour, a head-cloth, a beard, a face
    that can speak (see makeFigure). Without it every one of the world's folk is exactly as
    before. */
-function makePerson(seed, role, child, female, folk, look){
+/* `dress` (optional) is the colours the folk of a land wear (Phase D, world/lands.js): a robe of
+   one of them, and without it one of the seven every land wore alike. */
+function makePerson(seed, role, child, female, folk, look, dress){
   const g=new THREE.Group(), F=FOLKS[folk]||FOLKS.levant, L=look||null;
   const sk=L&&L.skin!=null?L.skin:F.skin[Math.floor(hash2(seed,1.1)*F.skin.length)];
   const HR=L&&L.hair?L.hair:F.hair[Math.floor(hash2(seed,2.3)*F.hair.length)], EY=L&&L.eye?L.eye:F.eye[Math.floor(hash2(seed,4.9)*F.eye.length)];
-  const robeM=L&&L.robe!=null?robeMatHex(L.robe,L.sash):robeMatFor(Math.floor(hash2(seed,3.7)*ROBES.length));
+  const robeM=L&&L.robe!=null?robeMatHex(L.robe,L.sash)
+    :dress&&dress.length?robeMatHex(dress[Math.floor(hash2(seed,3.7)*dress.length)%dress.length])
+    :robeMatFor(Math.floor(hash2(seed,3.7)*ROBES.length));
   const headMats=L?L.headMats(sk,HR,EY):personHeadMats(sk,HR,EY);
   const head=new THREE.Mesh(new THREE.BoxGeometry(3,3,3),headMats);
   head.position.y=10.4; g.add(head);
@@ -14654,6 +14658,46 @@ function emitTradeTools(G,H,trade,side,solids,houses){
   solids.push({x:tx,z:tz,r:B*0.5});
   return {x:q.x,z:q.z,faceX:tx,faceZ:tz};
 }
+/* ---- THE WORKSHOPS OF THE LAND (Phase D2) ----
+   The yards of the land's own trades — the dye-vats and the shell-heap of Tsor,
+   the glass-house of Tsiḏon, the presses of Yasharal, the slime-pits and kilns
+   of Baḇal — raised at the edge of a town of the land (outside the wall of a
+   walled one), each turned to face the town. Which, and where, is
+   world/lands.js; what each is, world/workshops.js; this only finds it ground:
+   a lot clear of everything already standing and as level as the town's edge
+   allows, made up flat under its whole yard so nothing of it hangs in the air,
+   cleared of trees, and laid. Its hands are set to work by the people below. */
+function raiseWorkshops(G,ex,site,i,rnd,rectFree,addRect,torches,land){
+  ex.shops=[];
+  const ci=siteCountry(i), here=(cityFor(i)||{}).name||site.name||null;
+  const hasTown=nm=>SITES.some(s=>s&&siteCountry(s.i)===ci&&(s.name===nm||(cityFor(s.i)||{}).name===nm));
+  const list=LANDS.worksAt(land,here,i<COUNTRIES.length,hasTown);
+  const R0=ex.cityWall?ex.cityWall.R+B*8:B*24, span=B*16;
+  for(let k=0;k<list.length;k++){ const W=list[k]; let best=null;
+    for(let tr=0;tr<28;tr++){
+      const a=rnd(900+k*37+tr)*Math.PI*2, r=R0+rnd(960+k*37+tr)*span;
+      const x=Math.round((site.x+Math.cos(a)*r)/B)*B, z=Math.round((site.z+Math.sin(a)*r)/B)*B;
+      const dx=site.x-x, dz=site.z-z, rot=Math.abs(dz)>Math.abs(dx)?(dz>0?0:2):(dx>0?1:3);
+      const hw=(rot%2?W.d:W.w)*B/2, hd=(rot%2?W.w:W.d)*B/2;
+      if(!rectFree(x-hw,x+hw,z-hd,z+hd,B*2.5)) continue;
+      let lo=1e9,hi=-1e9,ok=true;
+      for(let ix=Math.round((x-hw)/B);ix<Math.round((x+hw)/B)&&ok;ix++) for(let iz=Math.round((z-hd)/B);iz<Math.round((z+hd)/B);iz++){
+        const c=cell(ix,iz); if(!c||c.kind==='wall'||c.kind==='floe'||(c.lake!==undefined&&c.lake>=c.h)){ ok=false; break; }
+        if(c.h<lo) lo=c.h; if(c.h>hi) hi=c.h; }
+      if(!ok) continue;
+      if(!best||hi-lo<best.sp){ best={x,z,rot,hw,hd,sp:hi-lo,y:hi*B}; if(hi-lo===0) break; } }
+    if(!best||best.sp>2) continue;
+    const {x,z,rot,hw,hd,y}=best, P=LANDS.lay(W,rot), X=v=>x+v*B, Y=v=>y+v*B, Z=v=>z+v*B;
+    stamped(ex,()=>{ clearLotOfTrees(x-hw-B,z-hd-B,x+hw+B,z+hd+B,y);
+      footRect(x-hw,z-hd,x+hw,z+hd,y,W.floor||'dirt');
+      if(W.floor) emitTop(G,W.floor,x-hw,z-hd,x+hw,z+hd,y,1);
+      for(const p of P.build) emitBox(G,X(p[0]),Y(p[1]),Z(p[2]),X(p[3]),Y(p[4]),Z(p[5]),p[6],p[6],null); });
+    for(const p of P.dress) emitBox(G,X(p[0]),Y(p[1]),Z(p[2]),X(p[3]),Y(p[4]),Z(p[5]),p[6],p[7]||p[6],null,p[8]||null);
+    for(const f of P.fire) torches.push({x:X(f[0]),y:Y(f[1]),z:Z(f[2])});
+    addRect(x-hw,x+hw,z-hd,z+hd);
+    ex.shops.push({k:W.k,name:W.name,x,z,y,rot,w:hw*2,d:hd*2,
+      hands:P.hands.map(h=>Object.assign({},h,{x:X(h.at[0]),z:Z(h.at[1]),fx:X(h.face[0]),fz:Z(h.face[1])}))}); }
+}
 /* where the woodcutters of a town go: the direction with the most trunks
    standing within a walk of it */
 function findWoodlot(site,rnd){
@@ -14747,17 +14791,29 @@ function emitPlaza(G,cx,cz,y,rad){
   }
 }
 /* a market / fish stall — posts, a striped canopy, a counter, and goods */
-function emitStall(G,x,z,y,kind){
+function emitStall(G,x,z,y,kind,wares){
   const w=B*1.15, d=B*0.95;
   emitBox(G, x-w,y,z-d, x+w,y+B*0.95,z+d, 'planks','benchTop',null);            // counter
   for(const sx of [-1,1]) for(const sz of [-1,1])
     emitBox(G, x+sx*w-0.22,y,z+sz*d-0.22, x+sx*w+0.22,y+B*2.7,z+sz*d+0.22,'logSide','logTop',null);
   const canopy = kind==='fish' ? 'wool' : 'haySide';
   emitBox(G, x-w-B*0.45,y+B*2.6,z-d-B*0.45, x+w+B*0.45,y+B*2.95,z+d+B*0.45, canopy,canopy,canopy);
+  if(wares) return;                       /* a land's own wares are laid on it after, by stallWares */
   const goods = kind==='fish' ? ['waterB','glass','waterB'] : ['hayTop','flowerR','flowerY'];
   for(let k=0;k<3;k++){ const gx=x-w*0.6+k*w*0.6, gm=goods[k%goods.length];
     emitBox(G, gx-B*0.24,y+B*0.95,z-B*0.24, gx+B*0.24,y+B*1.3,z+B*0.24, gm,gm,gm); }
 }
+/* ---- A LAND'S OWN WARES ON ITS COUNTER (Phase D1) ----
+   Every market stall on the earth showed the same three things — a hay-top
+   and two flower-blocks — whatever the land. A stall of a land that makes
+   something lays out what it makes, as world/goods.js says each looks: bales
+   of purple at Tsor, bolts of white linen in Mitsrayim, cakes of slime in
+   Baḇal. Drawn, not laid as blocks, so each keeps its colour; `k0` turns
+   the row so the stalls of one market do not all show the same three. */
+function stallWares(G,x,z,y,keys,k0){ const w=B*1.15;
+  for(let k=0;k<3;k++){ const key=keys[(k0+k)%keys.length], g=GOODS.find(q=>q.k===key), L=g&&g.look; if(!L) continue;
+    const gx=x-w*0.6+k*w*0.6, top=y+B, h=B*(0.24+0.08*((k0+k)%2));
+    emitBox(G, gx-B*0.26,top,z-B*0.3, gx+B*0.26,top+h,z+B*0.3, L.m,L.m,null,L.t||null); } }
 /* build a whole city on the country's site — streets, plaza, market, fish
    stall, and rows of homes (one per resident). Returns {homes, market, fish}.
    A GENERATOR: it yields between homes so the frame driver can spread a
@@ -14814,7 +14870,9 @@ function* buildCity(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
     for(let k=0;k<3+sz2;k++){ const sx=cx+B*(3+k*2.6), sz=cz+B*2.3;
       const c=landAtWorld(sx,sz); if(!c||c.kind==='wall') continue;
       if(!rectFree(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4,0)) continue;
-      stamped(ex,()=>emitStall(G,sx,sz,c.h*B,'market')); solids.push({x:sx,z:sz,r:B*1.6});
+      const wares=window.LANDS?LANDS.wares(COUNTRIES[siteCountry(i)].n):null;
+      stamped(ex,()=>emitStall(G,sx,sz,c.h*B,'market',wares)); solids.push({x:sx,z:sz,r:B*1.6});
+      if(wares) stallWares(G,sx,sz,c.h*B,wares,k);
       addRect(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4);
       ex.stalls.push({x:sx,z:sz}); } }
   /* extra wells of water — never inside a home's lot */
@@ -14974,6 +15032,8 @@ function* spawnVillage(i,exShell){
     style:houseStyleFor(siteCountry(i)), ci:siteCountry(i), big:true});
   const wy=topY(site.ix,site.iz);
   const cfg=cityFor(i);                 /* a great city here, or a small village? */
+  /* the land it stands in, whose own ways it keeps (Phase D, world/lands.js) */
+  const LANDN=COUNTRIES[siteCountry(i)].n, LND=window.LANDS||null;
   const torches=[]; const solids=[];
   /* ---- NOTHING IS BUILT INSIDE ANYTHING ELSE ----
      Every footprint laid — house, farm, pen, stall, well — is written down,
@@ -15046,7 +15106,9 @@ function* spawnVillage(i,exShell){
       const sx=site.x+B*(2.6+s*3.1), sz=site.z+B*(2.4-s*4.6);
       const sc=landAtWorld(sx,sz); if(!sc||sc.kind==='wall') continue;
       if(!rectFree(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4,0)) continue;
-      stamped(ex,()=>emitStall(G,sx,sz,sc.h*B, s?'fish':'market')); solids.push({x:sx,z:sz,r:B*1.6});
+      const wares=s?null:LND&&LND.wares(LANDN);
+      stamped(ex,()=>emitStall(G,sx,sz,sc.h*B, s?'fish':'market',wares)); solids.push({x:sx,z:sz,r:B*1.6});
+      if(wares) stallWares(G,sx,sz,sc.h*B,wares,0);
       addRect(sx-B*1.6,sx+B*1.6,sz-B*1.4,sz+B*1.4);
       ex.stalls.push({x:sx,z:sz});
     }
@@ -15231,6 +15293,8 @@ function* spawnVillage(i,exShell){
           emitBox(G,px-B*0.5,c.h*B,pz-B*0.5,px+B*0.5,c.h*B+B*(0.45+hash2(px,pz)*0.2),pz+B*0.5,'cobble','cobble',null); } }
       stamped(ex,()=>emitStairLine(G,ex,site.x,site.z,hx+Math.sin(toTown)*B*5,hz+Math.cos(toTown)*B*5));
       if(f%2===1) yield; } }
+  /* the workshops of the land at the town's edge — the dye-vats of Tsor, the kilns of Baḇal (Phase D2) */
+  if(LND){ raiseWorkshops(G,ex,site,i,rnd,rectFree,addRect,torches,LANDN); yield; }
   /* ---- THE HOUSEHOLD AT ITS TRADE (Round 137): each house its two trades,
      their tools in its yard, and the town's woodlot and stone-heap ---- */
   ex.woodlot=findWoodlot(site,rnd);
@@ -15239,10 +15303,11 @@ function* spawnVillage(i,exShell){
     for(let k=0;k<6;k++){ const px=q.x+(rnd(520+k)-0.5)*B*2.4, pz=q.z+(rnd(530+k)-0.5)*B*2.4, ph=B*(0.3+rnd(540+k)*0.5);
       emitBox(G,px-B*0.35,q.y,pz-B*0.3,px+B*0.35,q.y+ph,pz+B*0.3,k%2?'hewnStone':'stone',k%2?'hewnStone':'stone',null); }
     solids.push({x:q.x,z:q.z,r:B*1.2}); }
+  const TR=(LND&&LND.trades(LANDN))||{men:MEN_TRADES,women:WOMEN_TRADES};   /* the trades of THIS land's households (Phase D) */
   for(let hi=0;hi<ex.houses.length;hi++){ const H=ex.houses[hi]; if(!H.door) continue;
     const r1=rnd(400+hi*3), r2=rnd(401+hi*3), s0=r1<0.5?1:-1;
-    H.trade=MEN_TRADES[Math.floor(r1*MEN_TRADES.length)%MEN_TRADES.length];
-    H.ftrade=WOMEN_TRADES[Math.floor(r2*WOMEN_TRADES.length)%WOMEN_TRADES.length];
+    H.trade=TR.men[Math.floor(r1*TR.men.length)%TR.men.length];
+    H.ftrade=TR.women[Math.floor(r2*TR.women.length)%TR.women.length];
     H.work=emitTradeTools(G,H,H.trade,s0,solids,ex.houses);
     H.fwork=emitTradeTools(G,H,H.ftrade,-s0,solids,ex.houses);
     if(hi%4===3) yield; }
@@ -15349,6 +15414,7 @@ function* spawnVillage(i,exShell){
       if(spawnFree(x,z)) return {x,z}; }
     return {x:wx,z:wz}; };
   const folk=folkOfCountry(siteCountry(i));        /* the people of this land, as they looked */
+  const DRESS=LND&&LND.dress(LANDN);               /* and as they dressed (Phase D) */
   const addPerson=(role,hx,hz,roamR,child,female,data)=>{
     const seed=i*1000+people.length*7;
     const onDk=deckMap.get(Math.floor(hx/B)+','+Math.floor(hz/B))!==undefined;
@@ -15356,12 +15422,12 @@ function* spawnVillage(i,exShell){
       const cc=landAtWorld(hx,hz);
       if(!cc||cc.kind==='wall'){ hx=cx; hz=cz; }
       const sp=clearSpawn(hx,hz); hx=sp.x; hz=sp.z; }
-    const per=makePerson(seed,role,child,female,folk);
+    const per=makePerson(seed,role,child,female,folk,null,DRESS);
     per.position.set(hx,topY(Math.floor(hx/B),Math.floor(hz/B)),hz); g.add(per);
     placedAt.push({x:hx,z:hz});
     const ent=Object.assign({m:per,role,hx,hz,roamR:roamR||3,tx:hx,tz:hz,t:hash2(seed,7)*4,
       pt:0,acting:false,seed,child:!!child,female:!!female,home:null,
-      name:personName(seed,female)},data||{});
+      name:personName(seed,female,LANDN),land:LANDN},data||{});
     people.push(ent); return ent; };
   /* the teacher, and the children who gather for the lesson and play at tag */
   const lx=cx+Math.cos(rnd(200)*6.28)*B*3.5, lz=cz+Math.sin(rnd(200)*6.28)*B*3.5;
@@ -15383,6 +15449,8 @@ function* spawnVillage(i,exShell){
   addPerson('water',cx-B*2,cz+B*2.5,2,false,true,{well:{x:cx,z:cz}});
   if(ex.pen) addPerson('feeder',ex.pen.x+B,ex.pen.z+B,3,false,true,{pen:ex.pen});
   for(const s of ex.stalls) addPerson('vendor',s.x,s.z-B*1.6,1,false,rnd(s.x)>0.5,{stall:s});
+  for(const S of ex.shops||[]) for(const h of S.hands)          /* and a soul at every workshop (Phase D2) */
+    addPerson(h.trade,h.x,h.z,1,false,!!h.female,{work:{x:h.x,z:h.z,faceX:h.fx,faceZ:h.fz},shop:h});
   if(ex.pier) addPerson('fisher',ex.pier.x,ex.pier.z,1,false,false,{spot:{x:ex.pier.x,z:ex.pier.z}});
   /* the families of the hamlets: two grown souls to a house, set down at the well */
   for(const hm of ex.hamlets||[]) for(let k=0;k<hm.houses*2;k++)
@@ -15419,10 +15487,14 @@ function* spawnVillage(i,exShell){
      out of the wilds, come down to hunt the pigs and the fowl */
   const lat=90-Math.hypot(site.x/R_WORLD,site.z/R_WORLD)*180;
   const baseKind=(cellRaw(site.ix,site.iz)||{kind:'grass'}).kind;
-  const roster = baseKind==='desert' ? ['camel','camel','goat','lizard','lizard','chicken']
+  /* the land's own herds first — no swine in Yasharal, buffalo on the rivers of Baḇal,
+     reindeer in the north, llamas in the Andes (Phase D), with the creeping thing of its
+     ground among them for the hunter; then the old roster by the ground */
+  const ownFlock=LND&&LND.flock(LANDN);
+  const roster = ownFlock ? ownFlock.concat(baseKind==='desert'||baseKind==='rock'?['lizard']:['hare','hare']) : (baseKind==='desert' ? ['camel','camel','goat','lizard','lizard','chicken']
     : baseKind==='rock' ? ['goat','goat','hare','lizard','chicken']
     : lat>55 ? ['sheep','sheep','goat','hare','chicken']
-    : ['sheep','cow','pig','goat','chicken','chicken','hare','hare'];
+    : ['sheep','cow','pig','goat','chicken','chicken','hare','hare']);
   const beasts=[]; const nA=6+Math.floor(rnd(91)*4);
   const hx0=ex.pen?ex.pen.x:cx, hz0=ex.pen?ex.pen.z:cz;
   for(let a2=0;a2<nA;a2++){ const kind=roster[Math.floor(rnd(a2+95)*roster.length)]||'sheep';
@@ -15446,10 +15518,11 @@ function* spawnVillage(i,exShell){
      everywhere else — tethered at the door by night, saddled in the
      morning, ridden out, tied up beside the work, and ridden home. */
   const mounts=[];
-  { const rideKind=baseKind==='desert'?'camel':(lat>44?'horse':'donkey');
+  { const lr=LND?LND.ride(LANDN):undefined;                     /* the land's own beast of the road, or none (Phase D) */
+    const rideKind=lr!==undefined?lr:(baseKind==='desert'?'camel':(lat>44?'horse':'donkey'));
     const placeOf=e=>e.role==='woodcutter'?e.woodlot:e.role==='mason'?e.quarry:(e.role==='farmer'||e.role==='gleaner')?e.farm:e.role==='fisher'?e.spot:null;
     const kept=new Set();
-    for(const e of people){ if(e.child||!e.home||!e.home.H||e.home.ox===undefined) continue;
+    for(const e of rideKind?people:[]){ if(e.child||!e.home||!e.home.H||e.home.ox===undefined) continue;
       const P=placeOf(e); if(!P) continue;
       const H=e.home.H; if(kept.has(H)) continue;
       if(Math.hypot(P.x-e.home.ox,P.z-e.home.oz)<B*14) continue;
@@ -15484,6 +15557,7 @@ function* spawnVillage(i,exShell){
   scene.add(g);
   activeVillages.set(i,{g,site,people,beasts,birds,torchMats,deckKeys,houses:ex.houses,solids,
     farms:ex.farms,stalls:ex.stalls,pen:ex.pen,pier:ex.pier,stamps:ex.stamps,ways:ex.ways||(ex.ways=[]),mounts,feedT:-99,hamlets:ex.hamlets||[],trade:!!ex.trade,caravanserai:ex.caravanserai||null,sites:ex.sites||[],
+    shops:ex.shops||[],land:LANDN,
     /* how far its houses, farmsteads and hamlets reach from the well — every quick
        "is this near that town" test asks it, not the old fixed 420 (Round 137) */
     reach:Math.max(420,...ex.houses.map(H=>Math.hypot((H.x0+H.x1)/2-site.x,(H.z0+H.z1)/2-site.z)+B*14))});
@@ -16188,6 +16262,10 @@ function nextTask(ent,vv){
   if(F&&!atLesson&&R()>F.work){ const act=BEHAVIOR.drawFolkAct(ent.role,R());
     if(act){ ent.act=act; ent.anim=act; ent.actT=3+R()*4; folkActPlace(ent,vv,act); return; } }
   ent.act=null;
+  /* the hand at a workshop of the land, at the work of it (Phase D2) — the hours are his trade's own row */
+  if(ent.shop){ const w=ent.work||site;
+    ent.tx=w.x+(R()-0.5)*1.2; ent.tz=w.z+(R()-0.5)*1.2; ent.actT=7+R()*8; ent.anim=ent.shop.anim||'work';
+    ent.faceX=w.faceX; ent.faceZ=w.faceZ; ent.load=false; return; }
   switch(ent.role){
     case 'farmer': { const f=ent.farm||site;
       ent.tx=f.x+(R()-0.5)*B*3.4; ent.tz=f.z+(R()-0.5)*B*2.2; ent.actT=2.5+R()*3.5; ent.anim='work'; break; }
@@ -16761,7 +16839,16 @@ const CARGO_MAX=24;
 function cargoCount(){ let n=0; for(const k in state.cargo) n+=state.cargo[k]; return n; }
 function priceAt(profile,gi){
   if(window.__INJECT&&__INJECT.flatPrices) return GOODS[gi].base;   /* the fault put back: every land the same */
-  const f=0.6+hash2(profile*3.7+gi*13.1, profile*7.3-gi*2.9);   /* 0.6 .. 1.6 */
+  /* ---- CHEAP WHERE IT IS MADE, DEAR WHERE IT IS WANTED (Phase D3) ----
+     The factor was a throw of the dice per market and good, and the purple of
+     Tsor came out dearer in Tsor than in Norway. A market of a land (any town
+     of it) now asks js/lands.js, which reckons it from what the land makes and
+     wants and how far it lies from the makers; the land's own throw (the same
+     one as before) only shades it. A merchantman's prices are her own. */
+  const st=profile<COUNTRIES.length?null:SITES[profile];
+  const ci=profile<COUNTRIES.length?profile:(st&&st.ci>=0?st.ci:-1), pr=ci>=0?ci:profile;
+  const h=hash2(pr*3.7+gi*13.1, pr*7.3-gi*2.9);
+  const f=(ci>=0&&window.LANDS)?LANDS.priceFactor(COUNTRIES[ci].n,GOODS[gi].k,h):0.6+h;   /* 0.6 .. 1.6 */
   return Math.max(1,Math.round(GOODS[gi].base*f)); }
 /* ---- THE EXCHANGE ALWAYS TAKES ITS CUT (Round 98) ----
    THE FAULT THIS MENDS, found by test 65's first run: sell was a rounding
@@ -17038,8 +17125,13 @@ const SPEECH={
    in a rumour — the way to the nearest coast you have not yet seen */
 const NAMES_M=['Yoram','Boaz','Elazar','Achim','Zebadyah','Malachi','Othniel','Yair','Shammah','Ittai','Carmi','Nachum','Eran','Palti'];
 const NAMES_F=['Miryam','Tamar','Zilpah','Achsah','Yael','Chuldah','Serach','Naarah','Avigail','Devorah','Keturah','Adah','Bilhah','Peninnah'];
-function personName(seed,female){ const pool=female?NAMES_F:NAMES_M;
-  return pool[Math.floor(hash2(seed,9.7)*pool.length)%pool.length]; }
+/* — and a soul bears a name of its OWN people (Phase D): the fourteen are the
+   names of Yasharal, and were given in Japan and Norway alike. The land's
+   tongue is asked first (world/lands.js); a land with none keeps these. */
+function personName(seed,female,land){ const r=hash2(seed,9.7);
+  const own=land&&window.LANDS?LANDS.name(land,r,female):null; if(own) return own;
+  const pool=female?NAMES_F:NAMES_M;
+  return pool[Math.floor(r*pool.length)%pool.length]; }
 function callingOf(p){
   if(p.role==='folk') return p.female?'woman of the town':'man of the town';
   if(p.role==='water') return 'water-bearer';
@@ -17058,7 +17150,7 @@ function rumourLine(){
   const ang=Math.atan2(dx*eX+dz*eZ, dx*nX+dz*nZ);
   const dir=COMPASS8[(Math.round(ang/(Math.PI/4))+8)%8];
   const km=Math.round(bd/U_PER_KM/50)*50;
-  return '“Sailors speak of '+COUNTRIES[best].n+' — away to the '+dir+', some '
+  return '“Sailors speak of '+(window.LANDS?LANDS.label(COUNTRIES[best].n):COUNTRIES[best].n)+' — away to the '+dir+', some '
     +Math.max(50,km).toLocaleString()+' km over the deep. No one here has seen its coast.”';
 }
 function speakTo(p){ if(!p) return;
@@ -17069,7 +17161,8 @@ function speakTo(p){ if(!p) return;
   if(p._lying){ wakeSleeper(p,6);
     toast(who+' wakes, and lifts '+(p.female?'her':'his')+' head — “Mm? It is the middle of the night, friend. Let a soul sleep.”'); return; }
   if(p._abed){ toast(who+' — “It is late, friend, and I am for my bed. Come and find me in the morning.”'); return; }
-  const lines=SPEECH[p.role]||SPEECH.folk;
+  /* a worker at a workshop talks of his work, and the folk of a land of their land (Phase D) */
+  const lines=(p.shop&&p.shop.says)||(p.land&&window.LANDS&&LANDS.talk(p.land,p.role))||SPEECH[p.role]||SPEECH.folk;
   const now=performance.now()*0.001;
   if(!p.talk||now-p.talk.t>25) p.talk={idx:0,t:now};
   p.talk.t=now;
@@ -18837,7 +18930,8 @@ function interact(){
     case 'none': break;                             /* a notice, not a deed (a shut stall) */
     case 'trade': { const st=promptStall;
       const cty=cityFor(st.i);
-      openTrade(st.i,'the market of '+(cty?cty.name+', ':'')+COUNTRIES[siteCountry(st.i)].n,false); break; }
+      const ln=COUNTRIES[siteCountry(st.i)].n;
+      openTrade(st.i,'the market of '+(window.LANDS?LANDS.label(ln,cty&&cty.name,', '):(cty?cty.name+', ':'')+ln),false); break; }
     case 'hail': { const h=promptTrader; h.T.halt=25; tradeShip=h.T;
       toast('You hail the merchantman; she backs her sails and comes alongside to trade.');
       openTrade(500+h.k*7,'a merchantman upon the deep (her prices are her own)',true); break; }
@@ -20949,13 +21043,14 @@ function placeTick(){
   else{
     const ci=countryAtUV(u,v);
     if(ci){ const cty=cityFor(ci-1);
-      txt=(cty?cty.name+' — '+COUNTRIES[ci-1].n:COUNTRIES[ci-1].n).toUpperCase();
+      txt=(window.LANDS?LANDS.label(COUNTRIES[ci-1].n,cty&&cty.name)          /* and the land by its old name beside its own (Phase D) */
+        :(cty?cty.name+' — '+COUNTRIES[ci-1].n:COUNTRIES[ci-1].n)).toUpperCase();
       /* on a river, or on its bank away from the town, the river is named:
          THE GIḤON (NILE) — EGYPT. In the town itself the town keeps it. */
       if(state.mode==='boat'||state.mode==='walk'){
         const st=SITES[ci-1], inTown=state.mode==='walk'&&st&&Math.hypot(p.x-st.x,p.z-st.z)<600;
         const rn=inTown?null:riverNameAt(p.x,p.z);
-        if(rn) txt=(rn+' — '+COUNTRIES[ci-1].n).toUpperCase(); } }
+        if(rn) txt=(rn+' — '+(window.LANDS?LANDS.label(COUNTRIES[ci-1].n):COUNTRIES[ci-1].n)).toUpperCase(); } }
     else if(state.mode==='walk'&&landAtWorld(p.x,p.z)) txt='AN UNCHARTED ISLE';
     else{ let best=-1,bd=1e9;
       for(let i=0;i<COUNTRIES.length;i++){ const c=COUNTRIES[i].c;
@@ -21732,7 +21827,8 @@ function greetTick(dt,nightF){
         p.greetT=now;
         /* each trade's own word lives in js/behavior.js, on its FOLK row */
         const own=(window.__INJECT&&__INJECT.dumbTrades)?null
-          :window.BEHAVIOR&&BEHAVIOR.folkGreet?BEHAVIOR.folkGreet(p.role,p.role==='child'&&p.anim==='sit'):null;
+          :(p.land&&window.LANDS&&LANDS.greet(p.land,p.role,Math.random()))   /* the land's own word, for those with none of their trade's (Phase D) */
+          ||(window.BEHAVIOR&&BEHAVIOR.folkGreet?BEHAVIOR.folkGreet(p.role,p.role==='child'&&p.anim==='sit'):null);
         const line=own||(nightF>0.5?GREETS_NIGHT[Math.floor(Math.random()*GREETS_NIGHT.length)]
                                     :GREETS_DAY[Math.floor(Math.random()*GREETS_DAY.length)]);
         barkAt(p,line);
