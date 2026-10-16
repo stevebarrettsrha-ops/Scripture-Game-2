@@ -49,7 +49,12 @@ const T=[
   {n:'Bĕyth Tsaiḏa', lat:32.9100, lon:35.6300, size:'village', land:'Yasharal', by:'where the Yardĕn comes into the lake'},
   {n:'Miḡdal',       lat:32.8250, lon:35.5150, size:'town',    land:'Yasharal', by:'on the west shore, the town of the fish-curers'},
   {n:'Ḥatsor',       lat:33.0170, lon:35.5680, size:'city',    land:'Yasharal', by:'the great tell of the north'},
-  {n:'Dan',          lat:33.2490, lon:35.6520, size:'town',    land:'Yasharal', by:'at the springs of the Yardĕn'}
+  {n:'Dan',          lat:33.2490, lon:35.6520, size:'town',    land:'Yasharal', by:'at the springs of the Yardĕn'},
+  /* Tsor and Tsiḏon, the cities of the coast north of the Galil (Phase D). Tsor is the land's own
+     city (cities/tsor.js), and here is where she stands; Tsiḏon is her elder sister up the coast,
+     the city of the glass-makers. Appended, so no town before them is numbered anew. */
+  {n:'Tsor',         lat:33.2705, lon:35.1964, size:'city',    land:'Lebanon',  by:'the island city of the purple, her two harbours and the dye-works on the strand'},
+  {n:'Tsiḏon',       lat:33.5630, lon:35.3700, size:'town',    land:'Lebanon',  by:'the elder city of the coast, her sea-castle and the glass-houses'}
 ];
 window.EARTH=window.EARTH||{};
 EARTH.townList=(EARTH.townList||[]).concat(T);
