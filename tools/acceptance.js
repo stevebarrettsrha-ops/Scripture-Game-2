@@ -5899,10 +5899,12 @@ T[70]={name:'THE WORK OF THE PEOPLE — a job taken, done and paid: the floor, t
           stand(b0.x+3,b0.z);
           if(D.jobPress()!=='lead') faults.push('standing at the stray, the hand was not offered it');
           else { let waited=0;
-            for(let k=0;k<3000;k++){ D.folkStep(1,0.1);
+            /* (a led beast waits its turn for a planned way round — the town's
+               plans are rationed a few to a tick — so it is given its time) */
+            for(let k=0;k<5000;k++){ D.folkStep(1,0.1);
               const J=D.jobsNow().jobs.find(j=>j.id===id); if(!J||J.status!=='taken') break;
               const b=D.jobBeast(id); if(!b) break;
-              if(Math.hypot(b.x-w.x,b.z-w.z)>B*4){ if(++waited>400) break; continue; }      /* wait for it to come up */
+              if(Math.hypot(b.x-w.x,b.z-w.z)>B*4){ if(++waited>2500) break; continue; }     /* wait for it to come up */
               const dx=F.pen.x-w.x, dz=F.pen.z-w.z, d=Math.hypot(dx,dz);
               if(d>B*1.5){ const st=Math.min(d,1.1); w.x+=dx/d*st; w.z+=dz/d*st; } }
             const J=D.jobsNow().jobs.find(j=>j.id===id);

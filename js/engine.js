@@ -11321,7 +11321,7 @@ function placeScrolls(){
       for(const L of [].concat(sc.given.land)){ const ci=COUNTRIES.findIndex(c=>c.n===L);
         if(ci>=0&&SITES[ci]){ st=SITES[ci]; sc.keeperLand=L; break; } }
       if(!st){ sc.gone=true; continue; }
-      sc.x=st.x; sc.z=st.z; sc.m=null; sc.placed='given'; continue; }
+      sc.x=st.x; sc.z=st.z; sc.m=null; sc.placed='given'; sc.keeperTown=siteName(st.i); continue; }
     /* ---- A NAMED PLACE OVERRIDES THE COUNTRY AND ITS BEARING ---- */
     if(sc.at&&sc.at.mount){
       const p=scrollAtMount(sc.at.mount);
@@ -17148,8 +17148,11 @@ function jobBeastAim(ent,vv,dt){
       else {
         const a=Math.atan2(px-w.x,pz-w.z); ent.tx=w.x+Math.sin(a)*B*1.4; ent.tz=w.z+Math.cos(a)*B*1.4;
         j.at={x:px,z:pz};
+        /* home when it is in the fold — or when the man leading it stands at
+           the fold and it is at his heels: the gate is his to open, and a goat
+           that has gone up the bank beside it is still brought in */
         const P=vv.pen;
-        if(P&&Math.hypot(px-P.x,pz-P.z)<B*4){
+        if(P&&(Math.hypot(px-P.x,pz-P.z)<B*4||(Math.hypot(w.x-P.x,w.z-P.z)<B*6&&dP<B*5))){
           ent.led=false; ent.jobId=undefined; ent.hx=P.x; ent.hz=P.z; ent.roamR=4;
           jobReady(j,'The '+j.beast+' goes in among the flock at the fold of '+townWord(j)+'. Go and tell '+giverWord(j)+'.');
           return 4; }
@@ -17301,7 +17304,7 @@ function scrollWhere(sc){
   if(sc.placed==='cave') return 'deep in a cave'+(sc.at&&sc.at.near?' of '+sc.at.near:'')+', in '+sc.country;
   if(sc.placed==='mount'&&sc.at) return 'on the height of '+sc.at.mount;
   if(sc.at&&sc.at.landmark) return 'by '+sc.at.landmark;
-  return 'on open ground out past the town of '+sc.country; }
+  return 'on open ground in '+sc.country+', out past its town'; }
 /* ---- THE TRUSTED ARE TOLD ----
    A town that trusts the traveller tells him what it knows of the nearest
    scroll still out in the world: where it lies, or who keeps it. */
@@ -17435,7 +17438,7 @@ function logScrollsHTML(){
     else if(sc.given){ const G=sc.given, kl=keeperLand(sc), have=worksIn(kl);
       how='<span class="tag give">GIVEN</span> by '+escH(G.who)+', in '+escH(kl)+', after '+numWord(G.works)+' work'+(G.works>1?'s':'')
         +' for its people — '+Math.min(have,G.works)+' of '+G.works+' done'+(have>=G.works?' · <b>it is ready for you</b>':'')
-        +(isFinite(sc.x)?' · '+escH(kl)+' lies '+escH(farWord(Math.hypot(sc.x-p.x,sc.z-p.z)))+' to the '+windTo(p.x,p.z,sc.x,sc.z):''); }
+        +(isFinite(sc.x)?' · '+escH(sc.keeperTown||kl)+' lies '+escH(farWord(Math.hypot(sc.x-p.x,sc.z-p.z)))+' to the '+windTo(p.x,p.z,sc.x,sc.z):''); }
     else how='<span class="tag lie">LIES</span> '+escH(scrollWhere(sc))
       +(isFinite(sc.x)?' · '+escH(farWord(Math.hypot(sc.x-p.x,sc.z-p.z)))+' to the '+windTo(p.x,p.z,sc.x,sc.z):'');
     h+='<div class="sc'+(got?' got':'')+'"><span class="m">'+(got?'✓':'·')+'</span><span class="w"><b>'+escH(sc.name)+'</b> <i>'+escH(sc.book)+'</i><br>'+how+'</span></div>'; }
@@ -23334,7 +23337,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
       if(b) return {kind:b.kind,x:b.m.position.x,y:b.m.position.y,z:b.m.position.z,led:!!b.led}; } return null; },
   jobProgressOf:id=>{ const j=jobById(id); return j?jobProgress(j):null; },
   jobsSaveForm:()=>JSON.parse(JSON.stringify(jobsForSave())),
-  jobsRestore:o=>{ jobsFromSave(o,1); for(const[vi] of activeVillages) jobsOnRaise(vi); },
+  jobsRestore:o=>{ jobsReset(); jobsFromSave(o,1); for(const[vi] of activeVillages) jobsOnRaise(vi); },
   gwSet:(vk,n)=>{ jobState(); state.gw[vk]=n; },
   gwOf:vk=>gwOf(vk),
   dealAt:(profile,sea)=>GOODS.map((g,gi)=>{ const d=dealOf(profile,gi,!!sea); return {k:g.k,buy:d.buy,sell:d.sell}; }),
