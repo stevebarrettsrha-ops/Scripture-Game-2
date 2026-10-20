@@ -138,7 +138,7 @@ STORY.act({
       {id:'guard1', at:[-64.2,69], face:0, robe:0x6b5a44, cloth:0x8a7a60},
       {id:'guard2', at:[-63.4,72.4], face:0, robe:0x6b5a44, cloth:0x8a7a60}
     ],
-    things:[ {id:'board', kind:'box', at:[-12.5,29], w:0.6, h:0.12, d:0.45, y:0.8, color:0xc9b38a},
+    things:[ {id:'board', kind:'box', at:[-12.5,29], w:0.6, h:0.12, d:0.45, dy:0.8, color:0xc9b38a},
              {id:'boardRest', kind:'box', at:[-12.5,29], w:0.9, h:0.8, d:0.6, color:0x6e5238},
              {id:'writeStone', kind:'box', at:[-61.6,70.6], w:1.0, h:0.5, d:0.8, color:0x9c9486} ],
     beats:[
@@ -178,9 +178,11 @@ STORY.act({
       {id:'t1', at:[-33,23], face:Math.PI*0.5, robe:0x7c6a52, cloth:0xcfc4aa},
       {id:'t2', at:[-27,26], face:-Math.PI*0.6, robe:0x5f6a52, cloth:0xcfc4aa}
     ],
-    things:[ {id:'scroll1', kind:'box', at:[-30,21.3], w:0.7, h:0.1, d:0.35, y:0.84, color:0xe9dfc2},
-             {id:'scroll2', kind:'box', at:[-29.4,21.3], w:0.7, h:0.1, d:0.35, y:0.84, color:0xe9dfc2},
-             {id:'scroll3', kind:'box', at:[-30.6,21.3], w:0.7, h:0.1, d:0.35, y:0.84, color:0xe9dfc2} ],
+    /* the three scrolls lie ON the desk the words are kept at (its top is the floor found there): written in the
+       small city's bare numbers they were laid in the true city's ground, a man's height and more under the floor */
+    things:[ {id:'scroll1', kind:'box', at:['studyDesk',0,-1.2], w:0.5, h:0.1, d:0.3, color:0xe9dfc2},
+             {id:'scroll2', kind:'box', at:['studyDesk',0.62,-1.25], w:0.5, h:0.1, d:0.3, color:0xe9dfc2},
+             {id:'scroll3', kind:'box', at:['studyDesk',-0.62,-1.25], w:0.5, h:0.1, d:0.3, color:0xe9dfc2} ],
     beats:[
       {t:'say', who:'yah', ref:'YASHAYAHU 8:16'},
       {t:'goal', text:'Go in to the desk where the words are kept', goto:'studyDesk', r:2},
@@ -282,10 +284,12 @@ STORY.act({
       {id:'k0', dress:'kohen', at:[2,-30], face:0, beard:0x6d6a66},
       ...[0,1,2,3,4,5,6,7].map(k=>({id:'a'+k, dress:'assyrian', at:['pool',11.6-(k%4)*3.3,-8.4+Math.floor(k/4)*2.8], face:Math.PI*(k%2), robe:0x7a2a22, cloth:null, beard:0x14100e}))
     ],
-    things:[ {id:'letter', kind:'box', at:[-30,22.6], w:0.5, h:0.08, d:0.3, y:0.84, color:0xe9dfc2},
+    /* the word written for the sovereign, in the naḇi's own hands — "take it from his hand" */
+    things:[ {id:'letter', kind:'box', at:'studyDesk', w:0.5, h:0.08, d:0.3, color:0xe9dfc2},
              ...[0,1,2,3,4].map(k=>({id:'tent'+k, kind:'box', at:['pool',15.6-k*4.2,-2.4-(k%2)*0.6], w:3.2, h:1.9, d:2.2, color:0xb8a888})) ],
     glows:[ {id:'malak', malak:true, at:['pool',28,-10], dy:13, size:12, color:0xfff6dc, intensity:2.2, pulse:true, hidden:true} ],
     beats:[
+      {t:'hold', id:'letter', who:'yah'},
       {t:'cam', from:[12,4,-4], look:'hiz', dur:0.1},
       {t:'move', who:'hiz', to:['hekalView>hekal',4,0], speed:1.2, wait:false},     /* (up to the House: four metres on from where it is seen, toward it) */
       {t:'cam', from:[14,5,-14], look:[6,1.6,-26], dur:8, wait:false},
