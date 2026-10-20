@@ -61,7 +61,7 @@ const DT=0.05;                   /* the step of game time each tick */
             const fl=[];
             if(P.G){ const c=S.ctx(), T=window.THREE, bb=new T.Box3(), AIR=/^(dove|vision|gloryThrone|heavenCourt|smokeCloud|livingOne|boat|net|chain|robeTrain|heavenAltar|throne)$/;
               for(const id in c.things){ const o=c.things[id], u=o.userData, t=u.thing; if(!t||!o.visible||u.crowd||u.heldBy||u.leadBy||u.following||u.goTo||u.bob||AIR.test(t.kind||'')) continue;
-                bb.setFromObject(o); if(!isFinite(bb.min.y)) continue; const x=(bb.min.x+bb.max.x)/2, z=(bb.min.z+bb.max.z)/2, g=c.groundY(x,z,bb.min.y+0.3);
+                bb.setFromObject(o); if(!isFinite(bb.min.y)) continue; c.scene.updateMatrixWorld(); bb.applyMatrix4(new T.Matrix4().copy(c.scene.matrixWorld).invert());   /* (in the scene's own measure) */ const x=(bb.min.x+bb.max.x)/2, z=(bb.min.z+bb.max.z)/2, g=c.groundY(x,z,bb.min.y+0.3);
                 if(bb.min.y-g>0.12) fl.push({what:'thing '+id+(t.kind?' ('+t.kind+')':''),gap:+(bb.min.y-g).toFixed(2)}); }
               for(const id in c.actors){ const g0=c.actors[id], u=g0.userData; if(!g0.visible||u.sit||u.ride||u.aboard||u.lie||u.kneel||u.fly||u.ascend||u.fixedY!==undefined) continue;
                 const p=g0.position, g=c.groundY(p.x,p.z,p.y+0.5), d=p.y-g; if(d>0.2) fl.push({what:'soul '+id,gap:+d.toFixed(2)}); } }
