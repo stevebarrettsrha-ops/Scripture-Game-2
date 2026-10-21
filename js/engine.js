@@ -5978,8 +5978,24 @@ scene.fog=new THREE.Fog(0x9fc5e8,FOG_NEAR,FOG_FAR); const FOG=scene.fog;
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,R_WORLD*3.2);
 /* antialias ON — a world built of blocks is ALL edges, and smoothed edges
    are half the difference between a tech demo and a finished game */
-const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:true});
-renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
+const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:true,powerPreference:'high-performance'});
+/* ---- IS IT THE GRAPHICS CARD THAT DRAWS? ----
+   A browser that cannot (or will not) use the card draws in software — SwiftShader, llvmpipe — at a frame
+   or less a second, and the land then comes in a block at a time over minutes, as if it were not there.
+   Asked once, and told plainly on the menu, with where to turn the card on. A software hand also draws
+   the world at one pixel to a pixel, never two. */
+const GPU=(()=>{ try{ const gl=renderer.getContext(), x=gl.getExtension('WEBGL_debug_renderer_info');
+  const name=String(x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)||'');
+  return {name,soft:/swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i.test(name)}; }catch(e){ return {name:'',soft:false}; } })();
+renderer.setPixelRatio(GPU.soft?1:Math.min(2,devicePixelRatio||1));
+(function warnSoft(){ if(!GPU.soft) return; const show=()=>{ const m=$('menu'); if(!m||$('gpu-warn')) return;
+  const d=document.createElement('div'); d.id='gpu-warn';
+  d.style.cssText='position:fixed;left:50%;bottom:3vh;transform:translateX(-50%);z-index:60;max-width:min(92vw,640px);padding:10px 16px;border:1px solid #d4af37;border-radius:6px;background:rgba(20,14,10,.94);color:#f4ead5;font:13px/1.55 Georgia,serif;text-align:center';
+  d.innerHTML='<b style="color:#f1d573">Your browser is drawing the game without your graphics card</b> ('+GPU.name.replace(/[<>&]/g,'')+'). '+
+    'The land will come in very slowly. Turn on hardware acceleration: Chrome/Edge — Settings › System › “Use graphics acceleration”; '+
+    'Firefox — Settings › Performance. Then restart the browser. (chrome://gpu or about:support shows what draws.)';
+  document.body.appendChild(d); setTimeout(()=>{ d.style.transition='opacity 1.5s'; d.style.opacity='0'; setTimeout(()=>d.remove(),1600); },60000); };
+  if(document.readyState==='loading') addEventListener('DOMContentLoaded',show); else setTimeout(show,0); })();
 renderer.setSize(innerWidth,innerHeight);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 scene.background=new THREE.Color(0x9fc5e8);
@@ -24201,7 +24217,7 @@ function* buildAncient(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
   return {homes};
 }
 window.__KIT={
-  B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
+  B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer, GPU,
   /* the point a scene holds the eye on, for the sun's map (renewed each frame; it lapses when not), and a new scene's things marked to cast at once */
   shadowFocus:(x,y,z)=>{ SHADOW.focus={x,y,z,n:3}; }, shadowRescan:()=>{ if(SHADOW.rescan) SHADOW.rescan(); },
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
