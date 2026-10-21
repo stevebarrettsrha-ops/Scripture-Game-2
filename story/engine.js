@@ -307,7 +307,7 @@ function buildScene(sc){
     if(a.y!==undefined&&yOf(a.y)!==undefined){ let fy=yOf(a.y);
       /* (a height written for a place stands on the stone laid there: where the stone's top falls on its block a
          hand or two higher than the number, he is set on it, not sunk to the shins in it) */
-      const sf=ctx.groundY(g.position.x,g.position.z,fy+0.5); if(sf>fy&&sf-fy<1) fy=sf;
+      if(typeof a.y==='string'){ const sf=ctx.groundY(g.position.x,g.position.z,fy+0.5); if(sf>fy&&sf-fy<1) fy=sf; }   /* (not a deck's height a set gives in numbers) */
       g.userData.fixedY=fy; g.position.y=fy; }
     if(a.hidden) g.visible=false;
     if(a.sit) g.userData.sit=true;

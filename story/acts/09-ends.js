@@ -882,6 +882,7 @@ STORY.act({
              {id:'ox1', kind:'beast', beast:'ox', at:['templeSteps',1.6,3.8], face:0},
              {id:'wr0', kind:'wreath', at:['templeSteps',0,1.6]} ],
     beats:[
+      {t:'hold', id:'wr0', who:'kz'},                       /* the garland in the kohen's hands from the first, not in the air by the steps */
       {t:'cam', from:['gateIn',6,10], fdy:5, look:['square',0,-2], dur:0.1},
       {t:'show', id:'lyc'},
       {t:'cam', from:['lame',3.4,3], fdy:1.6, look:'lameL', dur:2.2},
