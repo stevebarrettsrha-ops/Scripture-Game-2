@@ -60,8 +60,12 @@ const DT=0.05;                   /* the step of game time each tick */
                nor lying, must have something under it — the ground, a floor, a table — within a hand's breadth */
             const fl=[];
             if(P.G){ const c=S.ctx(), T=window.THREE, bb=new T.Box3(), AIR=/^(dove|vision|gloryThrone|heavenCourt|smokeCloud|livingOne|boat|net|chain|robeTrain|heavenAltar|throne)$/;
+              c.scene.updateMatrixWorld(); const inv=new T.Matrix4().copy(c.scene.matrixWorld).invert(), tops={};   /* (in the scene's own measure) */
+              for(const id in c.things){ const o=c.things[id]; if(!o.visible) continue; const q=new T.Box3().setFromObject(o); if(isFinite(q.min.y)){ q.applyMatrix4(inv); tops[id]=q; } }
               for(const id in c.things){ const o=c.things[id], u=o.userData, t=u.thing; if(!t||!o.visible||u.crowd||u.heldBy||u.leadBy||u.following||u.goTo||u.bob||AIR.test(t.kind||'')) continue;
-                bb.setFromObject(o); if(!isFinite(bb.min.y)) continue; c.scene.updateMatrixWorld(); bb.applyMatrix4(new T.Matrix4().copy(c.scene.matrixWorld).invert());   /* (in the scene's own measure) */ const x=(bb.min.x+bb.max.x)/2, z=(bb.min.z+bb.max.z)/2, g=c.groundY(x,z,bb.min.y+0.3);
+                bb.setFromObject(o); if(!isFinite(bb.min.y)) continue; bb.applyMatrix4(inv);
+                const x=(bb.min.x+bb.max.x)/2, z=(bb.min.z+bb.max.z)/2; let g=c.groundY(x,z,bb.min.y+0.3);
+                for(const j in tops){ const q=tops[j]; if(j!==id&&x>=q.min.x&&x<=q.max.x&&z>=q.min.z&&z<=q.max.z&&q.max.y<=bb.min.y+0.06&&q.max.y>g) g=q.max.y; }   /* (on a table or a rest that is itself a thing) */
                 if(bb.min.y-g>0.12) fl.push({what:'thing '+id+(t.kind?' ('+t.kind+')':''),gap:+(bb.min.y-g).toFixed(2)}); }
               for(const id in c.actors){ const g0=c.actors[id], u=g0.userData; if(!g0.visible||u.sit||u.ride||u.aboard||u.lie||u.kneel||u.fly||u.ascend||u.fixedY!==undefined) continue;
                 const p=g0.position, g=c.groundY(p.x,p.z,p.y+0.5), d=p.y-g; if(d>0.2) fl.push({what:'soul '+id,gap:+d.toFixed(2)}); } }
