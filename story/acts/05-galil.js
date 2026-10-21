@@ -199,6 +199,7 @@ STORY.act({
       {t:'cam', on:'yahusha', shot:'back', toward:'n3', dur:1.8},
       {t:'say', who:'yahusha', ref:'LUKE 4:18-19', turn:false},
       {t:'face', who:'yahusha', to:'attendant'},
+      {t:'cam', from:[-2,2.6,-17.5], look:[-2,1.6,-27], dur:1.2},     /* (the room again, to see it given back: the eye over His shoulder was left looking at the roof) */
       {t:'hold', id:'scroll', who:'attendant'},
       {t:'read', ref:'LUKE 4:20'},
       {t:'face', who:'yahusha', to:'n5'},
