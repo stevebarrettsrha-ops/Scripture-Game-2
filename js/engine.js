@@ -5999,9 +5999,13 @@ renderer.setPixelRatio(GPU.soft?1:Math.min(2,devicePixelRatio||1));
 (function warnSoft(){ if(!GPU.soft) return; const show=()=>{ const m=$('menu'); if(!m||$('gpu-warn')) return;
   const d=document.createElement('div'); d.id='gpu-warn';
   d.style.cssText='position:fixed;left:50%;bottom:3vh;transform:translateX(-50%);z-index:60;max-width:min(92vw,640px);padding:10px 16px;border:1px solid #d4af37;border-radius:6px;background:rgba(20,14,10,.94);color:#f4ead5;font:13px/1.55 Georgia,serif;text-align:center';
-  d.innerHTML='<b style="color:#f1d573">Your browser is drawing the game without your graphics card</b> ('+GPU.name.replace(/[<>&]/g,'')+'). '+
-    'The land will come in very slowly. Turn on hardware acceleration: Chrome/Edge — Settings › System › “Use graphics acceleration”; '+
-    'Firefox — Settings › Performance. Then restart the browser. (chrome://gpu or about:support shows what draws.)';
+  d.innerHTML='<b style="color:#f1d573">'+(/Electron/.test(navigator.userAgent)?'The game is being drawn without your graphics card':'Your browser is drawing the game without your graphics card')+'</b> ('+GPU.name.replace(/[<>&]/g,'')+'). '+
+    (/Electron/.test(navigator.userAgent)
+      ? 'The land will come in very slowly. The graphics card’s own driver is wanted: on Ubuntu, open “Software &amp; Updates › Additional Drivers” '+
+        'and choose the NVIDIA (or AMD) proprietary driver, or run <code>sudo ubuntu-drivers install</code>, then restart. On Windows, install the driver from the card’s maker.'
+      : 'The land will come in very slowly. Turn on hardware acceleration: Chrome/Edge — Settings › System › “Use graphics acceleration”; '+
+        'Firefox — Settings › Performance. Then restart the browser. (chrome://gpu or about:support shows what draws.) '+
+        'On Ubuntu the browsers that come as snaps often cannot reach the card at all — the desktop game (desktop/) always can.');
   document.body.appendChild(d); setTimeout(()=>{ d.style.transition='opacity 1.5s'; d.style.opacity='0'; setTimeout(()=>d.remove(),1600); },60000); };
   if(document.readyState==='loading') addEventListener('DOMContentLoaded',show); else setTimeout(show,0); })();
 renderer.setSize(innerWidth,innerHeight);

@@ -16,7 +16,8 @@ const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=
 
 /* THE SAVES FOLDER (local/saves.js): progress kept in files in saves/ beside the game, the edited
    pieces of the world in saves/world/. Only names of this shape are read or written. */
-const SAVES=path.join(ROOT,'saves'), SAVE_NAME=/^(world\/)?[A-Za-z0-9._~-]{1,160}\.json$/, SAVE_MAX=64*1024*1024;
+let SAVES=path.join(ROOT,'saves');
+const SAVE_NAME=/^(world\/)?[A-Za-z0-9._~-]{1,160}\.json$/, SAVE_MAX=64*1024*1024;
 function saves(req,res,p){
   if(p==='/__saves'&&req.method==='GET'){ const files={};
     for(const sub of ['','world/']){ let list=[]; try{ list=fs.readdirSync(path.join(SAVES,sub)); }catch(e){}
@@ -32,7 +33,10 @@ function saves(req,res,p){
   req.on('end',()=>{ try{ fs.mkdirSync(path.dirname(f),{recursive:true}); fs.writeFileSync(f+'.tmp',Buffer.concat(parts)); fs.renameSync(f+'.tmp',f);
       res.writeHead(200).end('saved'); }catch(e){ fs.rm(f+'.tmp',{force:true},()=>{}); res.writeHead(500).end('not saved'); } }); }
 
-const argv=process.argv.slice(2), opt={page:'voyage',port:8642,idle:0,browser:true};
+/* THE DESKTOP GAME (desktop/main.js) serves the same files from within itself: it asks for the handler,
+   with its saves kept where the computer keeps a program's own data (the game's folder may not be written) */
+if(require.main!==module){ module.exports={handler:(o)=>{ if(o&&o.saves) SAVES=o.saves; return handle; },PAGES,SIGNATURE}; }
+const argv=require.main===module?process.argv.slice(2):[], opt={page:'voyage',port:8642,idle:0,browser:true};
 for(let i=0;i<argv.length;i++){ const a=argv[i];
   if(a==='--port') opt.port=+argv[++i]; else if(a==='--idle-minutes') opt.idle=+argv[++i];
   else if(a==='--no-browser') opt.browser=false; else if(PAGES[a]) opt.page=a;
@@ -70,7 +74,7 @@ function handle(req,res){
     res.writeHead(200,Object.assign(head,{'Content-Length':st.size}));
     if(req.method==='HEAD') return res.end(); fs.createReadStream(f).pipe(res); }); }
 
-(async()=>{
+if(require.main===module) (async()=>{
   for(let port=opt.port;port<opt.port+20;port++){
     const url=`http://127.0.0.1:${port}/${PAGES[opt.page]}`;
     if(await ours(port)){ console.log('THE VOYAGE is already running at '+url); if(opt.browser) openBrowser(url); return; }
