@@ -24229,7 +24229,7 @@ function* buildAncient(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
   return {homes};
 }
 window.__KIT={
-  B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer, GPU,
+  B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer, GPU, get METER(){ return METER; },
   /* the point a scene holds the eye on, for the sun's map (renewed each frame; it lapses when not), and a new scene's things marked to cast at once */
   shadowFocus:(x,y,z)=>{ SHADOW.focus={x,y,z,n:3}; }, shadowRescan:()=>{ if(SHADOW.rescan) SHADOW.rescan(); },
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
@@ -27000,7 +27000,7 @@ function updateFalls(px,pz){
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
 function frame(){ orgSnap();
-  requestAnimationFrame(frame);
+  requestAnimationFrame(frameMeasured);
   const dt=Math.min(0.05,clock.getDelta());
   /* before the voyage begins the MENU stands over the living world: the sky
      keeps its hour, the sea runs, the ship rides the swell at her anchorage,
@@ -27658,5 +27658,23 @@ function frame(){ orgSnap();
   stageHook(dt);
   drawWorld();
 }
-frame();
+/* ================= THE MEASURE OF A FRAME (F3) =================
+   Sixty frames a second is sixteen and two thirds milliseconds for everything: the game's own work, the
+   ground laid, and the drawing. F3 shows what each frame costs on THIS computer — the frames a second, the
+   milliseconds of the game's own work, the draws and the triangles the card was given — so the cost is told
+   in numbers and not in a feeling of slowness. The figures are kept in __KIT.METER for the tools too. */
+const METER={on:false,fps:0,js:0,jsMax:0,calls:0,tris:0,n:0,t0:performance.now(),acc:0,max:0,el:null};
+function frameMeasured(){
+  const t=performance.now(); renderer.info.autoReset=false; renderer.info.reset();
+  frame();
+  const js=performance.now()-t, M=METER; M.n++; M.acc+=js; if(js>M.max) M.max=js;
+  M.calls=renderer.info.render.calls; M.tris=renderer.info.render.triangles;
+  if(t-M.t0>=1000){ M.fps=M.n*1000/(t-M.t0); M.js=M.acc/M.n; M.jsMax=M.max; M.n=0; M.acc=0; M.max=0; M.t0=t;
+    if(M.on){ if(!M.el){ M.el=document.createElement('div'); M.el.id='meter';
+        M.el.style.cssText='position:fixed;left:8px;top:8px;z-index:70;padding:6px 10px;background:rgba(10,8,6,.82);color:#f1d573;font:12px/1.5 monospace;border:1px solid #6b5418;border-radius:4px;pointer-events:none;white-space:pre';
+        document.body.appendChild(M.el); }
+      M.el.textContent=M.fps.toFixed(0)+' fps   game '+M.js.toFixed(1)+' ms (worst '+M.jsMax.toFixed(1)+')\n'+M.calls+' draws   '+(M.tris/1e6).toFixed(2)+' M triangles\n'+(GPU.soft?'SOFTWARE DRAWING: ':'')+GPU.name.slice(0,60); M.el.style.display=''; }
+    else if(M.el) M.el.style.display='none'; } }
+addEventListener('keydown',e=>{ if(e.code==='F3'){ METER.on=!METER.on; e.preventDefault(); } });
+frameMeasured();
 };
