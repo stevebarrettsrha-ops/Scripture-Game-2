@@ -5325,6 +5325,7 @@ function seedArches(){
   } }
   if(window.CAVES&&CAVES.arches) CAVES.arches(ARCHES);
 }
+let _chFrameT=0;
 function updateChunks(px,pz,budget,view){
   seedArches();          /* once, and only when the world is standing */
   view=view||VIEW;
@@ -5362,9 +5363,16 @@ function updateChunks(px,pz,budget,view){
      the queue unbuilt — after a fair-wind crossing the tail of the old
      coast's queue was being built only to be reaped the same frame. */
   const rush=budget>100;      /* a landfall set down whole (fair wind, going ashore) */
-  const T0=performance.now(), MS=budget>9?14:budget>4?9:4;
+  /* ---- A SLOW FRAME BUYS A BIGGER SLICE ----
+     The slice was set for a frame of sixteen milliseconds. Where the browser draws the world in software, or
+     on a weak card, a frame is a second and more — and fourteen milliseconds of building in each such frame is
+     one chunk a second: the coast came in over a quarter of an hour, as if the land had gone from the earth.
+     When the frames themselves are slow the drawing is the cost, not the building, so the building may take a
+     fair share of each: a third of the time the last frame took, up to a quarter of a second. */
+  const now=performance.now(), last=_chFrameT?now-_chFrameT:16; _chFrameT=now;
+  const T0=now, MS0=budget>9?14:budget>4?9:4, MS=last>60?Math.max(MS0,Math.min(250,last/3)):MS0, CAP=last>60?96:24;
   let n=0;
-  while(buildQueue.length&&(rush||(n<24&&(n<1||performance.now()-T0<MS)))){
+  while(buildQueue.length&&(rush||(n<CAP&&(n<1||performance.now()-T0<MS)))){
     const q=buildQueue.shift(); buildQueued.delete(q.k);
     if(chunks.has(q.k)) continue;
     if((q.cx-ccx)**2+(q.cz-ccz)**2>(view+2)*(view+2)) continue;   /* left behind */
