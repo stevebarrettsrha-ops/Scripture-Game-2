@@ -446,7 +446,7 @@ STORY.act({
       ...TABLE
     ],
     things:[ {id:'booth', kind:'box', at:[14.8,-4], w:1.4, h:0.8, d:2.2, color:0x6e5238}, {id:'stool', kind:'box', at:[13.55,-4.0], w:0.42, h:0.4, d:0.42, color:0x5d4a36},   /* (his seat at it: he sat on the air) */
-             {id:'coins', kind:'box', at:[14.8,-4.2], w:0.5, h:0.05, d:0.4, y:0.8, color:0xb8a060},
+             {id:'coins', kind:'box', at:[14.8,-4.2], w:0.5, h:0.05, d:0.4, dy:0.8, color:0xb8a060},
              {id:'table', kind:'box', at:[10.6,9.6], w:1.4, h:0.5, d:5.2, color:0x7a5a3e},
              {id:'bread1', kind:'basket', at:[17.6,3.6], full:true}, {id:'bread2', kind:'basket', at:[18.4,4.6], full:true}, {id:'bread3', kind:'basket', at:[16.8,4.8], full:true} ],
     beats:[

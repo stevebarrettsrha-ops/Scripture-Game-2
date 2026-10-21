@@ -1021,6 +1021,7 @@ STORY.act({
     ],
     things:[ {id:'door1', kind:'box', at:[8.25,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
              {id:'door2', kind:'box', at:[14.05,11], w:0.14, h:2.2, d:2.0, color:0x5d4a36, hidden:true},
+             {id:'lampStand', kind:'box', at:'lampAt', w:0.3, h:0.7, d:0.3, color:0x5d4a36},              /* (the lamp stood on nothing: its stand) */
              {id:'lampP', kind:'box', at:'lampAt', dy:0.7, w:0.24, h:0.12, d:0.14, color:0xc89a5a},
              /* the prisoners chained to rings in the walls, "and all the chains came loose" (16:26) */
              {id:'pc0', kind:'chain', at:'prisonIn', from:['pz0','R'], to:{at:[10,6.62], y:1.0}},
@@ -1135,7 +1136,7 @@ STORY.act({
       {id:'dionusios', name:'Dionusios', key:'Dionusios the Areopagite', at:['arFoot',2,2], face:-Math.PI/2, robe:0xf0ece0, cloth:0xd8cfb8, beard:0x9a948a, kind:'oldman', skin:0xb08060},
       {id:'damaris', name:'Damaris', key:'Damaris', kind:'woman', at:['arFoot',2.4,3.4], face:-Math.PI/2, robe:0x8a5a6a, cloth:0xe8e2d2, skin:0xb07a58}
     ],
-    things:[ {id:'altarT', kind:'box', at:'altarFront', w:0.1, h:0.1, d:0.1, color:0xd8cfb8, dy:0.9} ],
+    things:[ {id:'altarT', kind:'box', at:'altar', w:0.1, h:0.1, d:0.1, color:0xd8cfb8} ],
     beats:[
       {t:'cam', from:['idols',8,6], fdy:3, look:['idols',0,0], dur:0.1},
       {t:'read', ref:'ACTS 17:16'},
@@ -1389,13 +1390,13 @@ STORY.act({
       {t:'cam', release:true},
       {t:'witness', text:'Gather sticks for the fire', items:['sticks0','sticks1'], verb:'Take up the sticks', hold:0.5, deliver:'fire', r:2.2, carryText:'Lay them on the fire'},
       {t:'move', who:'shaul', to:['fire',1.4,0.9], speed:1},
-      {t:'show', id:'viper'},
+      {t:'show', id:'viper'}, {t:'hold', id:'viper', who:'shaul'},      /* "fastened on his hand" (28:3) */
       {t:'cam', from:['fire',4,3], fdy:1.8, look:'shaul', dur:1.8},
       {t:'read', ref:'ACTS 28:3'},
       {t:'say', who:'islanders', ref:'ACTS 28:4', turn:false},
       /* "he shook off the creature into the fire" */
       {t:'cam', from:['fire',3.4,2.6], fdy:2.4, look:[8.8,0.2,2.6], dur:1.4},
-      {t:'drift', id:'viper', to:[8.1,-0.1,2.1], dur:0.6, wait:false},
+      {t:'hold', id:'viper'}, {t:'drift', id:'viper', to:[8.1,-0.1,2.1], dur:0.6, wait:false},
       {t:'read', ref:'ACTS 28:5'},
       {t:'hide', id:'viper'},
       {t:'read', ref:'ACTS 28:6'},

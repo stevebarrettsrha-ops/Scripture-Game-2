@@ -220,7 +220,7 @@ STORY.act({
       {id:'widow', name:'A poor widow', kind:'woman', at:[-6,-39.4], face:Math.PI/2, robe:0x3c3a44, cloth:0x2e2a30, skin:0x7a4e30, hidden:true},
       ...GIVERS.map(a=>Object.assign({},a,{hidden:true}))
     ],
-    things:[ {id:'denar', kind:'box', at:[5.6,-39], w:0.1, h:0.02, d:0.1, color:0xd8d8d0, y:5.4, hidden:true} ],
+    things:[ {id:'denar', kind:'box', at:[5.6,-39], w:0.1, h:0.02, d:0.1, color:0xd8d8d0, hidden:true} ],
     beats:[
       {t:'cam', from:[14,7,-30], look:[6,4.6,-40], dur:0.1},
       {t:'read', ref:'MARK 12:13'},
@@ -230,7 +230,7 @@ STORY.act({
       {t:'face', who:'yahusha', to:'ph1'},
       {t:'cam', on:'yahusha', shot:'back', toward:'ph1', dur:1.6},
       {t:'say', voices:['herodians','yahusha'], ref:'MARK 12:15', turn:false},
-      {t:'show', id:'denar'},
+      {t:'show', id:'denar'}, {t:'hold', id:'denar', who:'ph1'},       /* the denarius brought, in the hand that brought it */
       {t:'cam', on:'yahusha', shot:'body', dur:1.6},
       {t:'say', voices:['yahusha','herodians'], ref:'MARK 12:16', turn:false},
       {t:'hide', id:'denar'},
@@ -270,16 +270,17 @@ STORY.act({
       {id:'kg1', name:'A chief kohen', dress:'kohen', at:[26,-6], face:-Math.PI/2, beard:0x6d6a66, kind:'oldman', hidden:true}
     ],
     things:[ {id:'table', kind:'box', at:[0.2,2.4], w:3, h:0.4, d:1, color:0x6e5238},
-             {id:'flask', kind:'box', at:'houseDoor', w:0.12, h:0.22, d:0.12, y:1.05, color:0xf0ece0} ],
+             {id:'flask', kind:'box', at:'houseDoor', w:0.12, h:0.22, d:0.12, color:0xf0ece0} ],
     beats:[
+      {t:'hold', id:'flask', who:'woman'},                 /* the flask of nard in her hands, not in the air by the door */
       {t:'cam', from:[9,3,-1], look:[0,0.8,2.4], dur:0.1},
       {t:'read', ref:'MARK 14:1'},
       {t:'say', who:'kohanim', ref:'MARK 14:2'},
       {t:'goal', text:'Come in to the house of Shim‛on, where they are at the table', goto:[5.4,0.6], r:2.6},
       {t:'move', who:'woman', to:[-3.4,2.4], speed:0.9},
-      {t:'hide', id:'flask'},
       {t:'cam', from:[-1.6,1.9,-1.2], look:[-2.6,1.1,2.4], dur:2},
       {t:'read', ref:'MARK 14:3'},
+      {t:'hide', id:'flask'},                               /* broken, and poured out */
       {t:'cam', from:[3.8,1.5,0.4], look:'yahudahQ', dur:1.8},
       {t:'say', who:'some', ref:'MARK 14:4'},
       {t:'say', who:'some', ref:'MARK 14:5'},

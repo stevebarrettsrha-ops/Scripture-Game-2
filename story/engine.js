@@ -350,6 +350,10 @@ function buildScene(sc){
     /* `faceTo`: turned toward a place (a throne toward the doors, whichever way the house runs) */
     if(t.faceTo!==undefined){ const q=pos(t.faceTo); obj.rotation.y=Math.atan2(q[0]-obj.position.x,q[1]-obj.position.z); }
     if(t.hidden) obj.visible=false;
+    /* THE THINGS MADE AT NOTHING'S HEIGHT ARE SET ON THE GROUND: a jar, a basket, the rolling stone, a lamb, a
+       beast — their makers stand them at the scene's naught, which in a true city is a block and more under the
+       floor of the street (a jar in Gat Shemanim lay twelve metres down in the hill) */
+    if(t.y===undefined&&/^(jar|basket|roundStone|lamb|camel|donkey|infant)$/.test(t.kind||'')) obj.position.y=(ctx.groundY(p[0],p[1])||0)+(t.dy||0);
     if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove'&&t.kind!=='throne'&&t.kind!=='vision'&&t.kind!=='fish') obj.position.y=t.y;
     obj.userData.thing=t; obj.userData.baseY=obj.position.y; obj.userData.soft=thingFoot(t); ctx.things[t.id]=obj; }
   settleActors(sc);

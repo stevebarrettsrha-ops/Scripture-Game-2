@@ -351,6 +351,9 @@ window.YAHRU_PLAN_TRUE=function(api,period){
     api.mark('hekal',(xHk+xHW)/2,0); api.mark('hekalView',Xw+cu(40),0); api.mark('courtPriests',(HX1+AX0)/2,-cu(20)); api.mark('courtIsrael',XI+cu(5),cu(30));
     /* the corner over the Qidron, the highest of the courts (Mattithyahu 4:5) */
     api.mark('pinnacle',xe(S)-6,S-6); api.mark('pinnacleY',PY+31.2,0);
+    /* and the corner itself built up to that height, the stone of the wing under their feet: with the mark and no
+       stone, the tempter and He who was tempted stood fifteen metres up in the air over the court */
+    { const px=xe(S)-6, pz=S-6; api.box(px-3,PY,pz-3,px+3,PY+30.2,pz+3,LIME,{foot:true}); api.box(px-3,PY+30.2,pz-3,px+3,PY+31.2,pz+3,STONE); }
     /* THE FORTRESS AT THE CORNER (the Antonia): four towers over the north-west of the courts */
     const A={x0:-150,x1:-35,z0:-307,z1:-267};
     api.pad(A.x0,A.z0,A.x1,A.z1,{y:PY,fill:'hewn-stone',top:'cobble',blend:0});

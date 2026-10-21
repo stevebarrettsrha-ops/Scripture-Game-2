@@ -182,9 +182,13 @@ STORY.act({
              Object.assign({id:'zek', at:[6.2,-2.6], face:0.3},ZAKAR,{dress:'man', robe:0x6a5a44, cloth:0xe8e2d2}),
              ...[0,1,2,3,4,5].map(k=>({id:'nb'+k, name:k===0?'A neighbour':undefined, at:[8.6+(k%3)*1.5,-1.6+Math.floor(k/3)*2.6], face:-Math.PI/2,
                robe:[0x7c6a52,0x5f6a52,0x8e6f4c,0x6b5a44,0x74604a,0x6e5a70][k], cloth:[0xcfc4aa,0xe8e2d2,0xb9ab8e][k%3], beard:k%2?null:0x3a2a1e, kind:k%2?'woman':'man'})) ],
-    things:[ {id:'babyY', kind:'infant', at:[5.6,0.2], y:1.05, holy:false, face:Math.PI/2},
-             {id:'tablet', kind:'box', at:[-2,-3], w:0.4, h:0.04, d:0.3, y:0.8, color:0xc9b38a} ],
+    /* the child in his mother's arms, and the tablet on a shelf in the house — written at the small village's
+       heights they hung in the air where the ground of a true village lay lower */
+    things:[ {id:'babyY', kind:'infant', at:[5.6,0.2], holy:false, face:Math.PI/2},
+             {id:'shelf', kind:'box', at:[-2,-3], w:0.7, h:0.78, d:0.45, color:0x6e5238},
+             {id:'tablet', kind:'box', at:[-2,-3], w:0.4, h:0.04, d:0.3, dy:0.78, color:0xc9b38a} ],
     beats:[
+      {t:'hold', id:'babyY', who:'alisheba'},
       {t:'cam', from:[13,3.2,6], look:[6.4,1.3,-0.4], dur:0.1},
       {t:'read', ref:'LUKE 1:57'},
       {t:'read', ref:'LUKE 1:58'},
@@ -346,9 +350,10 @@ STORY.act({
              {id:'hannah', name:'Ḥannah', key:'Ḥannah', kind:'woman', at:[15.6,-40.4], face:-Math.PI/2, robe:0x4a3a4a, cloth:0x3c3a44, skin:0x6e4524},
              {id:'seller', name:'A seller of doves', at:[-2.6,-37.2], face:Math.PI/2, robe:0x74604a, cloth:0xb9ab8e, beard:0x2c241f},
              ...COURT.slice(0,6).map((c,k)=>Object.assign({},c,{at:[[-2,-38.6],[-0.4,-40.4],[11,-40.6],[12.6,-39],[14.2,-40.8],[-2.4,-41.2]][k]})) ],
-    things:[ {id:'child', kind:'infant', at:[4.5,-37.3], y:5.72, face:Math.PI/2},
+    things:[ {id:'child', kind:'infant', at:[4.5,-37.3], face:Math.PI/2},   /* in his mother's arms; in Shim'on's at 2:28 */
              {id:'doves', kind:'box', at:[-1.8,-37.2], w:0.5, h:0.32, d:0.36, color:0xb08a5a} ],
     beats:[
+      {t:'hold', id:'child', who:'miryam'},
       {t:'cam', from:[12,7,-30], look:[5,5.6,-40], dur:0.1},
       {t:'read', ref:'LUKE 2:22'},
       {t:'read', ref:'LUKE 2:23', voices:['torah']},
@@ -360,7 +365,7 @@ STORY.act({
       {t:'move', who:'shimon', to:[5.6,-38.9], speed:1},
       {t:'face', who:'shimon', to:'miryam'},
       {t:'read', ref:'LUKE 2:27'},
-      {t:'drift', id:'child', to:[5.5,5.72,-38.4], dur:2},
+      {t:'hold', id:'child', who:'shimon'},              /* "he took Him up in his arms" */
       {t:'cam', from:[8.6,6.4,-35.6], look:[5.4,5.6,-38.6], dur:2},
       {t:'read', ref:'LUKE 2:28'},
       {t:'say', who:'shimon', ref:'LUKE 2:29', turn:false},
@@ -368,7 +373,7 @@ STORY.act({
       {t:'say', who:'shimon', ref:'LUKE 2:31', turn:false},
       {t:'say', who:'shimon', ref:'LUKE 2:32', turn:false},
       {t:'read', ref:'LUKE 2:33'},
-      {t:'drift', id:'child', to:[4.5,5.72,-37.3], dur:2},
+      {t:'hold', id:'child', who:'miryam'},
       {t:'say', who:'shimon', ref:'LUKE 2:34', turn:false},
       {t:'say', who:'shimon', ref:'LUKE 2:35', turn:false},
       {t:'move', who:'hannah', to:[7,-37.8], speed:0.8, wait:false},
