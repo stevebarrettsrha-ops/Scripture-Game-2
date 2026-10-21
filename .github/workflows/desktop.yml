@@ -1,5 +1,5 @@
 # THE VOYAGE AS A DESKTOP GAME — built for Linux and Windows on GitHub's own machines.
-# Run it by hand (Actions › Desktop game › Run workflow), or push a tag such as v1.0.1: the
+# It runs whenever the desktop program changes, by hand (Actions › Desktop game › Run workflow), or on a tag such as v1.0.1: the
 # Linux AppImage and .tar.gz and the Windows installer and .zip are kept on the run's page, and
 # on a tag they are set on a Release for anyone to download.
 name: Desktop game
@@ -7,6 +7,8 @@ on:
   workflow_dispatch:
   push:
     tags: ['v*']
+    branches: ['**']
+    paths: ['desktop/**', '.github/workflows/desktop.yml']
 permissions:
   contents: write
 jobs:
