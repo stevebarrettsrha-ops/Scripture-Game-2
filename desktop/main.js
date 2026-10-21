@@ -27,9 +27,10 @@ app.commandLine.appendSwitch('autoplay-policy','no-user-gesture-required');
 if(process.platform==='linux'){ app.commandLine.appendSwitch('no-sandbox'); app.commandLine.appendSwitch('ozone-platform-hint','auto'); }
 
 /* where the game's files are: beside this file while it is being made (desktop/game, staged by
-   stage.js, or the repository itself), and in the program's resources once it is installed */
+   stage.js, or the repository itself), and in the program's resources once it is installed; VOYAGE_ROOT names
+   another (the working copy, to measure a change without building) */
 function gameRoot(){
-  for(const p of [path.join(process.resourcesPath||'','game'),path.join(__dirname,'game'),path.resolve(__dirname,'..')])
+  for(const p of [process.env.VOYAGE_ROOT||'',path.join(process.resourcesPath||'','game'),path.join(__dirname,'game'),path.resolve(__dirname,'..')])
     if(fs.existsSync(path.join(p,'index.html'))&&fs.existsSync(path.join(p,'local','serve.js'))) return p;
   throw new Error('the game files were not found'); }
 
