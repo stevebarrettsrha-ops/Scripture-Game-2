@@ -8493,6 +8493,12 @@ const hullG=new THREE.Group(); hullG.scale.set(SHIP_SX,SHIP_S,SHIP_S); boatG.add
   for(const mat in G){ const gg=G[mat]; hullG.add(bucketMesh(gg,MAT[mat])); }
   const helmW=makeHelmWheel(); boatG.add(helmW);
   boatG.userData={flag,wheel:helmW.userData.wheel,helmW};
+  /* ---- HER TIMBERS DO NOT MOVE UPON HER ----
+     A thousand pieces make her, and the drawing worked out where every one of them stood, every frame, though
+     not one of them stirs on her but the flag at the masthead: the hull and all that is fixed to it are set
+     once, and the flag alone is asked again (the wheel, the crew and the passengers stand on her deck, not in
+     the hull, and keep their own motion) */
+  (function fix(o){ if(o===flag) return; o.updateMatrix(); o.matrixAutoUpdate=false; for(const c of o.children) fix(c); })(hullG);
   scene.add(boatG); }
 /* walkable regions of the deck, in ship-local WORLD coordinates (scaled) */
 const DECK_OBS=[[0,14,2.0],[0,-4,2.0],[0,-25.5,1.9],[4.8,8,1.4],[-4.8,-2,1.4],[4.8,-12,1.4],[-4.1,14,1.4]]
@@ -8690,7 +8696,7 @@ function crewTick(dt){ initCrew();
 const TRADERS=[];
 function initTraders(){ if(TRADERS.length) return;
   for(let k=0;k<2;k++){ const g=new THREE.Group();
-    const sc=0.62, h=hullG.clone(); h.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc); g.add(h);
+    const sc=0.62, h=hullG.clone(); h.matrixAutoUpdate=true; h.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc); g.add(h);   /* (her own scale is set again; her timbers are fixed within her as they are within ours) */
     /* her wheel is in a man's measure, apart from the hull — carried over at her scale */
     const hw=boatG.userData.helmW.clone(), cs=0.85;           /* (cs: her crew's own scale) */
     hw.scale.setScalar(cs); hw.position.set(0,(sc-cs)*SD.qdeckY,(sc-cs)*SD.wheelZ); g.add(hw);
