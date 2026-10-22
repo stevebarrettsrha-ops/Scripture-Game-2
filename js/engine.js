@@ -14571,7 +14571,15 @@ function houseFloorAt(x,z,y){
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
   if(window.__INJECT&&__INJECT.noDoorway) return false;
-  const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
+  /* (each list's doors kept in a grid of 16-unit cells, made once and made again when the list grows: a city's
+     every house was asked, for every soul's every step — the first cost of the townsfolk's walking) */
+  const at=arr=>{ let G=arr._doorGrid;
+    if(!G||arr._doorN!==arr.length){ G=new Map(); arr._doorGrid=G; arr._doorN=arr.length;
+      for(const H of arr){ if(!H.door) continue; const r=H.gw+1.8+(H.apron||0)*B;
+        for(let i=Math.floor((H.dx-r)/16);i<=Math.floor((H.dx+r)/16);i++) for(let j=Math.floor((H.dz-r)/16);j<=Math.floor((H.dz+r)/16);j++){
+          const k=i*73856093^j*19349663; let L=G.get(k); if(!L) G.set(k,L=[]); L.push(H); } } }
+    const L=G.get(Math.floor(nx/16)*73856093^Math.floor(nz/16)*19349663); if(!L) return false;
+    for(const H of L){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||420)) continue; if(at(vv.houses)) return true; }
   return at(standaloneHouses);
@@ -16193,7 +16201,7 @@ function mountTick(M,vv,dt){
    frame, so a whole town turning home at once costs nothing to see. */
 let DBG_EYE=null, simFrame=0;
 const FP_C=B/2;
-let fpLeft=3, fpCellLeft=700, fpOut=false;
+let fpLeft=3, fpCellLeft=700, fpOut=false, fpT0=0;   /* (fpT0: when this frame's ration began — the ration is of time too) */
 const FP_STATS={plans:0,found:0,partial:0,none:0,ms:0,maxMs:0,cells:0,hits:0};
 /* every cell judged is remembered until something is built or dug: the
    ground of a town does not change between one soul's plan and the next */
@@ -16212,6 +16220,11 @@ function folkCellCached(i,j,refY){
        given up for now, and taken up again next frame from the cells
        already judged — a town's first evening is planned over a few frames
        rather than in one long one */
+    /* ---- AND THE RATION IS OF TIME AS WELL AS OF CELLS ----
+       Seven hundred cells, each asked of the doorways, the walls, the houses and the ground, were some fifty
+       milliseconds of a frame on a slow machine — three frames' worth at sixty. Two and a half milliseconds a
+       frame, and the rest of the town's evening is planned on the frames after: no soul is seen to wait. */
+    if(fpCellLeft>0&&(fpCellLeft&15)===0&&fpT0&&performance.now()-fpT0>2.5) fpCellLeft=0;
     if(fpCellLeft<=0){ fpOut=true; return NaN; }
     fpCellLeft--; FP_STATS.cells++; const y=folkCellY((i+0.5)*FP_C,(j+0.5)*FP_C,refY); v=(y===null)?NaN:y;
     if(FP_CACHE.size>200000) FP_CACHE.clear(); FP_CACHE.set(key,v); }
@@ -17357,7 +17370,7 @@ function updateVillages(px,pz,dt,nightF,dayF){
       if(vv.ways) for(const k of vv.ways){ const n=(WAYS.get(k)||1)-1; if(n>0) WAYS.set(k,n); else WAYS.delete(k); }
       activeVillages.delete(i); }
   }
-  fpLeft=3; fpCellLeft=700;                      /* this frame's ration of planned ways (Round 137) */
+  fpLeft=3; fpCellLeft=700; fpT0=performance.now();   /* this frame's ration of planned ways (Round 137), and of time */
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
     vv.stormF=stormAt(vv.site.x,vv.site.z);      /* foul weather empties the lanes */
     /* THE VILLAGE'S OWN HOUR, read once a frame for everyone in it: the
@@ -24862,7 +24875,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
     return {x:x0,y:y0,z:z0,grid:out}; },
   /* the town's people stepped without drawing a frame, for a probe that
      keeps a whole night: n steps of dt, the same tick the frame runs */
-  folkStep:(n,dt)=>{ for(let k=0;k<n;k++){ fpLeft=3; fpCellLeft=700;
+  folkStep:(n,dt)=>{ for(let k=0;k<n;k++){ fpLeft=3; fpCellLeft=700; fpT0=performance.now();
       for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
         vv.hour=localHourAt(vv.site.x,vv.site.z);
         for(const p of vv.people) personTick(p,vv,dt);
