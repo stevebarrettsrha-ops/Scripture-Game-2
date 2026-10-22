@@ -266,7 +266,8 @@ STORY.act({
       {id:'friend', name:'His companion', key:'the other going to Ammaus', at:['road1',-1.2,0.8], face:-Math.PI/2, robe:0x5a6470, cloth:0xcfc4aa, beard:0x2c241f, skin:0x6e4524},
       Object.assign({id:'yahusha', at:['road0',2,0], face:-Math.PI/2, hidden:true},YAHUSHA)
     ],
-    things:[ {id:'lampT', kind:'box', at:'lamp', dy:1.4, w:0.18, h:0.12, d:0.28, color:0x8a6a40} ],
+    things:[ {id:'lampStand', kind:'box', at:'lamp', w:0.3, h:1.4, d:0.3, color:0x5d4a36},               /* (the lamp stood on nothing: its stand) */
+             {id:'lampT', kind:'box', at:'lamp', dy:1.4, w:0.18, h:0.12, d:0.28, color:0x8a6a40} ],
     glows:[ {id:'lampG', at:'lamp', dy:1.8, size:1.4, color:0xffc070, intensity:0.9, hidden:true} ],
     beats:[
       {t:'cam', from:['road1',8,9], fdy:3.4, look:['road1',0,0], dur:0.1},

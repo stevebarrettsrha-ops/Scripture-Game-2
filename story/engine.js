@@ -304,7 +304,11 @@ function buildScene(sc){
     const p=pos(a.at); g.position.set(p[0],ctx.groundY(p[0],p[1]),p[1]); g.userData.id=a.id;
     g.rotation.y=faceOf(a.face,p);
     g.userData.id=a.id; g.userData.name=a.name; g.userData.target=null; g.userData.follow=null; g.userData.def=a;
-    if(a.y!==undefined&&yOf(a.y)!==undefined){ g.userData.fixedY=yOf(a.y); g.position.y=g.userData.fixedY; }
+    if(a.y!==undefined&&yOf(a.y)!==undefined){ let fy=yOf(a.y);
+      /* (a height written for a place stands on the stone laid there: where the stone's top falls on its block a
+         hand or two higher than the number, he is set on it, not sunk to the shins in it) */
+      if(typeof a.y==='string'){ const sf=ctx.groundY(g.position.x,g.position.z,fy+0.5); if(sf>fy&&sf-fy<1) fy=sf; }   /* (not a deck's height a set gives in numbers) */
+      g.userData.fixedY=fy; g.position.y=fy; }
     if(a.hidden) g.visible=false;
     if(a.sit) g.userData.sit=true;
     if(a.name) g.userData.label=makeLabel(a.name,g);
@@ -350,6 +354,11 @@ function buildScene(sc){
     /* `faceTo`: turned toward a place (a throne toward the doors, whichever way the house runs) */
     if(t.faceTo!==undefined){ const q=pos(t.faceTo); obj.rotation.y=Math.atan2(q[0]-obj.position.x,q[1]-obj.position.z); }
     if(t.hidden) obj.visible=false;
+    /* THE THINGS MADE AT NOTHING'S HEIGHT ARE SET ON THE GROUND: a jar, a basket, the rolling stone, a lamb, a
+       beast — their makers stand them at the scene's naught, which in a true city is a block and more under the
+       floor of the street (a jar in Gat Shemanim lay twelve metres down in the hill) */
+    if(t.y===undefined&&/^(jar|basket|roundStone|lamb|camel|donkey|infant)$/.test(t.kind||'')){ obj.position.y=(ctx.groundY(p[0],p[1])||0)+(t.dy||0); obj.userData.groundDy=t.dy||0; }
+    if(t.y===undefined&&(!t.kind||t.kind==='box')) obj.userData.groundDy=(t.dy||0)+(t.h||0.5)/2;
     if(t.y!==undefined&&t.kind!=='box'&&t.kind!=='dove'&&t.kind!=='throne'&&t.kind!=='vision'&&t.kind!=='fish') obj.position.y=t.y;
     obj.userData.thing=t; obj.userData.baseY=obj.position.y; obj.userData.soft=thingFoot(t); ctx.things[t.id]=obj; }
   settleActors(sc);
@@ -2683,8 +2692,18 @@ function frame(dtW){
     D.objs.forEach((o,k)=>{ if(D.by) o.position.copy(D.from[k]).addScaledVector(D.by,e); else o.position.lerpVectors(D.from[k],D.to,e);
       if(o===player&&ctx.playerY!==undefined) ctx.playerY=o.position.y;
       if(o.userData&&o.userData.fixedY!==undefined) o.userData.fixedY=o.position.y;
-      if(o.userData&&o.userData.baseY!==undefined) o.userData.baseY=o.position.y; }); }
+      if(o.userData&&o.userData.baseY!==undefined) o.userData.baseY=o.position.y; if(o.userData) o.userData.moved=true; }); }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(u.heldBy) holdTick(o); if(u.thing&&u.thing.kind==='chain'&&o.visible) chainTick(o); }
+  /* ---- AND SET DOWN AGAIN ON THE GROUND AS IT IS LAID ----
+     A scene's ground goes on being made for its first moments — the level of the set eased in, the true
+     city's courses laid about it — and a jar or a lamb set down on the first frame's ground was left a
+     hand's breadth in the air over the ground as it came to be. For the first seconds, twice a second, each
+     thing that was set on the ground is set on it again where it now stands (not one held, led, carried or
+     moved by the story). */
+  ctx.settleT=(ctx.settleT||0)+dt;
+  if(ctx.settleT<8&&Math.floor(ctx.settleT*2)!==Math.floor((ctx.settleT-dt)*2))
+    for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; if(u.groundDy===undefined||u.heldBy||u.leadBy||u.following||u.goTo||u.moved) continue;
+      const g=ctx.groundY(o.position.x,o.position.z); if(g!==undefined&&isFinite(g)){ o.position.y=g+u.groundDy; if(u.baseY!==undefined) u.baseY=o.position.y; } }
   for(const id in ctx.things){ const o=ctx.things[id], u=o.userData; const w=u.wings||(u.bird&&u.bird.userData&&u.bird.userData.wings); if(w&&w[0]){ const a=Math.sin(t*9)*0.5; w[0].rotation.z=a; w[1].rotation.z=-a; }
     if(u.tick&&o.visible) u.tick(dt);
     if(u.bob&&!ctx.lake){ const k=ctx.rough||1; o.position.y=u.baseY+Math.sin(t*1.3+o.position.x)*0.06*k; o.rotation.z=Math.sin(t*0.9+o.position.z)*0.025*k; } }

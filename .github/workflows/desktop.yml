@@ -1,0 +1,56 @@
+# THE VOYAGE AS A DESKTOP GAME — built for Linux and Windows on GitHub's own machines.
+# It runs whenever the game changes, by hand (Actions › Desktop game › Run workflow), or on a tag such as v1.0.1: the
+# Linux AppImage and .tar.gz and the Windows installer and .zip are kept on the run's page, and
+# on a tag they are set on a Release for anyone to download.
+name: Desktop game
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+    branches: ['**']
+    paths-ignore: ['tools/**', '**/*.md', 'screenshots*/**']
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: true }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Install the builder
+        working-directory: desktop
+        run: npm ci || npm install
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        working-directory: desktop
+        run: npm run dist:linux
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        working-directory: desktop
+        run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with: { name: The-Voyage-Linux-AppImage, path: desktop/dist/*.AppImage, if-no-files-found: error, compression-level: 0 }
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with: { name: The-Voyage-Linux-tar.gz, path: desktop/dist/*.tar.gz, if-no-files-found: error, compression-level: 0 }
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with: { name: The-Voyage-Windows-installer, path: desktop/dist/*.exe, if-no-files-found: error, compression-level: 0 }
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Windows'
+        with: { name: The-Voyage-Windows-zip, path: desktop/dist/*.zip, if-no-files-found: error, compression-level: 0 }
+      - name: Set on the Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.tar.gz
+            desktop/dist/*.exe
+            desktop/dist/*.zip

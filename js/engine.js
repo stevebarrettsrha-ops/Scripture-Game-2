@@ -5325,6 +5325,7 @@ function seedArches(){
   } }
   if(window.CAVES&&CAVES.arches) CAVES.arches(ARCHES);
 }
+let _chFrameT=0;
 function updateChunks(px,pz,budget,view){
   seedArches();          /* once, and only when the world is standing */
   view=view||VIEW;
@@ -5362,9 +5363,16 @@ function updateChunks(px,pz,budget,view){
      the queue unbuilt — after a fair-wind crossing the tail of the old
      coast's queue was being built only to be reaped the same frame. */
   const rush=budget>100;      /* a landfall set down whole (fair wind, going ashore) */
-  const T0=performance.now(), MS=budget>9?14:budget>4?9:4;
+  /* ---- A SLOW FRAME BUYS A BIGGER SLICE ----
+     The slice was set for a frame of sixteen milliseconds. Where the browser draws the world in software, or
+     on a weak card, a frame is a second and more — and fourteen milliseconds of building in each such frame is
+     one chunk a second: the coast came in over a quarter of an hour, as if the land had gone from the earth.
+     When the frames themselves are slow the drawing is the cost, not the building, so the building may take a
+     fair share of each: a third of the time the last frame took, up to a quarter of a second. */
+  const now=performance.now(), last=_chFrameT?now-_chFrameT:16; _chFrameT=now;
+  const T0=now, MS0=budget>9?14:budget>4?9:4, MS=last>60?Math.max(MS0,Math.min(250,last/3)):MS0, CAP=last>60?96:24;
   let n=0;
-  while(buildQueue.length&&(rush||(n<24&&(n<1||performance.now()-T0<MS)))){
+  while(buildQueue.length&&(rush||(n<CAP&&(n<1||performance.now()-T0<MS)))){
     const q=buildQueue.shift(); buildQueued.delete(q.k);
     if(chunks.has(q.k)) continue;
     if((q.cx-ccx)**2+(q.cz-ccz)**2>(view+2)*(view+2)) continue;   /* left behind */
@@ -5978,8 +5986,28 @@ scene.fog=new THREE.Fog(0x9fc5e8,FOG_NEAR,FOG_FAR); const FOG=scene.fog;
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,1,R_WORLD*3.2);
 /* antialias ON — a world built of blocks is ALL edges, and smoothed edges
    are half the difference between a tech demo and a finished game */
-const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:true});
-renderer.setPixelRatio(Math.min(2,devicePixelRatio||1));
+const renderer=new THREE.WebGLRenderer({canvas:$('cv'),antialias:true,powerPreference:'high-performance'});
+/* ---- IS IT THE GRAPHICS CARD THAT DRAWS? ----
+   A browser that cannot (or will not) use the card draws in software — SwiftShader, llvmpipe — at a frame
+   or less a second, and the land then comes in a block at a time over minutes, as if it were not there.
+   Asked once, and told plainly on the menu, with where to turn the card on. A software hand also draws
+   the world at one pixel to a pixel, never two. */
+const GPU=(()=>{ try{ const gl=renderer.getContext(), x=gl.getExtension('WEBGL_debug_renderer_info');
+  const name=String(x?gl.getParameter(x.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)||'');
+  return {name,soft:/swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i.test(name)}; }catch(e){ return {name:'',soft:false}; } })();
+renderer.setPixelRatio(GPU.soft?1:Math.min(2,devicePixelRatio||1));
+(function warnSoft(){ if(!GPU.soft) return; const show=()=>{ const m=$('menu'); if(!m||$('gpu-warn')) return;
+  const d=document.createElement('div'); d.id='gpu-warn';
+  d.style.cssText='position:fixed;left:50%;bottom:3vh;transform:translateX(-50%);z-index:60;max-width:min(92vw,640px);padding:10px 16px;border:1px solid #d4af37;border-radius:6px;background:rgba(20,14,10,.94);color:#f4ead5;font:13px/1.55 Georgia,serif;text-align:center';
+  d.innerHTML='<b style="color:#f1d573">'+(/Electron/.test(navigator.userAgent)?'The game is being drawn without your graphics card':'Your browser is drawing the game without your graphics card')+'</b> ('+GPU.name.replace(/[<>&]/g,'')+'). '+
+    (/Electron/.test(navigator.userAgent)
+      ? 'The land will come in very slowly. The graphics card’s own driver is wanted: on Ubuntu, open “Software &amp; Updates › Additional Drivers” '+
+        'and choose the NVIDIA (or AMD) proprietary driver, or run <code>sudo ubuntu-drivers install</code>, then restart. On Windows, install the driver from the card’s maker.'
+      : 'The land will come in very slowly. Turn on hardware acceleration: Chrome/Edge — Settings › System › “Use graphics acceleration”; '+
+        'Firefox — Settings › Performance. Then restart the browser. (chrome://gpu or about:support shows what draws.) '+
+        'On Ubuntu the browsers that come as snaps often cannot reach the card at all — the desktop game (desktop/) always can.');
+  document.body.appendChild(d); setTimeout(()=>{ d.style.transition='opacity 1.5s'; d.style.opacity='0'; setTimeout(()=>d.remove(),1600); },60000); };
+  if(document.readyState==='loading') addEventListener('DOMContentLoaded',show); else setTimeout(show,0); })();
 renderer.setSize(innerWidth,innerHeight);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 scene.background=new THREE.Color(0x9fc5e8);
@@ -8465,6 +8493,12 @@ const hullG=new THREE.Group(); hullG.scale.set(SHIP_SX,SHIP_S,SHIP_S); boatG.add
   for(const mat in G){ const gg=G[mat]; hullG.add(bucketMesh(gg,MAT[mat])); }
   const helmW=makeHelmWheel(); boatG.add(helmW);
   boatG.userData={flag,wheel:helmW.userData.wheel,helmW};
+  /* ---- HER TIMBERS DO NOT MOVE UPON HER ----
+     A thousand pieces make her, and the drawing worked out where every one of them stood, every frame, though
+     not one of them stirs on her but the flag at the masthead: the hull and all that is fixed to it are set
+     once, and the flag alone is asked again (the wheel, the crew and the passengers stand on her deck, not in
+     the hull, and keep their own motion) */
+  (function fix(o){ if(o===flag) return; o.updateMatrix(); o.matrixAutoUpdate=false; for(const c of o.children) fix(c); })(hullG);
   scene.add(boatG); }
 /* walkable regions of the deck, in ship-local WORLD coordinates (scaled) */
 const DECK_OBS=[[0,14,2.0],[0,-4,2.0],[0,-25.5,1.9],[4.8,8,1.4],[-4.8,-2,1.4],[4.8,-12,1.4],[-4.1,14,1.4]]
@@ -8662,7 +8696,7 @@ function crewTick(dt){ initCrew();
 const TRADERS=[];
 function initTraders(){ if(TRADERS.length) return;
   for(let k=0;k<2;k++){ const g=new THREE.Group();
-    const sc=0.62, h=hullG.clone(); h.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc); g.add(h);
+    const sc=0.62, h=hullG.clone(); h.matrixAutoUpdate=true; h.scale.set(SHIP_SX*sc,SHIP_S*sc,SHIP_S*sc); g.add(h);   /* (her own scale is set again; her timbers are fixed within her as they are within ours) */
     /* her wheel is in a man's measure, apart from the hull — carried over at her scale */
     const hw=boatG.userData.helmW.clone(), cs=0.85;           /* (cs: her crew's own scale) */
     hw.scale.setScalar(cs); hw.position.set(0,(sc-cs)*SD.qdeckY,(sc-cs)*SD.wheelZ); g.add(hw);
@@ -14537,7 +14571,15 @@ function houseFloorAt(x,z,y){
 /* is this spot in some house's doorway (the gap, leaf open or shut)? */
 function inDoorway(nx,nz){
   if(window.__INJECT&&__INJECT.noDoorway) return false;
-  const at=arr=>{ for(const H of arr){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
+  /* (each list's doors kept in a grid of 16-unit cells, made once and made again when the list grows: a city's
+     every house was asked, for every soul's every step — the first cost of the townsfolk's walking) */
+  const at=arr=>{ let G=arr._doorGrid;
+    if(!G||arr._doorN!==arr.length){ G=new Map(); arr._doorGrid=G; arr._doorN=arr.length;
+      for(const H of arr){ if(!H.door) continue; const r=H.gw+1.8+(H.apron||0)*B;
+        for(let i=Math.floor((H.dx-r)/16);i<=Math.floor((H.dx+r)/16);i++) for(let j=Math.floor((H.dz-r)/16);j<=Math.floor((H.dz+r)/16);j++){
+          const k=i*73856093^j*19349663; let L=G.get(k); if(!L) G.set(k,L=[]); L.push(H); } } }
+    const L=G.get(Math.floor(nx/16)*73856093^Math.floor(nz/16)*19349663); if(!L) return false;
+    for(const H of L){ if(H.door&&Math.hypot(nx-H.dx,nz-H.dz)<H.gw+1.8+(H.apron||0)*B) return true; } return false; };
   for(const[,vv] of activeVillages){ if(!vv.houses||!vv.site) continue;
     if(Math.hypot(nx-vv.site.x,nz-vv.site.z)>(vv.reach||420)) continue; if(at(vv.houses)) return true; }
   return at(standaloneHouses);
@@ -16159,7 +16201,7 @@ function mountTick(M,vv,dt){
    frame, so a whole town turning home at once costs nothing to see. */
 let DBG_EYE=null, simFrame=0;
 const FP_C=B/2;
-let fpLeft=3, fpCellLeft=700, fpOut=false;
+let fpLeft=3, fpCellLeft=700, fpOut=false, fpT0=0;   /* (fpT0: when this frame's ration began — the ration is of time too) */
 const FP_STATS={plans:0,found:0,partial:0,none:0,ms:0,maxMs:0,cells:0,hits:0};
 /* every cell judged is remembered until something is built or dug: the
    ground of a town does not change between one soul's plan and the next */
@@ -16178,6 +16220,11 @@ function folkCellCached(i,j,refY){
        given up for now, and taken up again next frame from the cells
        already judged — a town's first evening is planned over a few frames
        rather than in one long one */
+    /* ---- AND THE RATION IS OF TIME AS WELL AS OF CELLS ----
+       Seven hundred cells, each asked of the doorways, the walls, the houses and the ground, were some fifty
+       milliseconds of a frame on a slow machine — three frames' worth at sixty. Two and a half milliseconds a
+       frame, and the rest of the town's evening is planned on the frames after: no soul is seen to wait. */
+    if(fpCellLeft>0&&(fpCellLeft&15)===0&&fpT0&&performance.now()-fpT0>2.5) fpCellLeft=0;
     if(fpCellLeft<=0){ fpOut=true; return NaN; }
     fpCellLeft--; FP_STATS.cells++; const y=folkCellY((i+0.5)*FP_C,(j+0.5)*FP_C,refY); v=(y===null)?NaN:y;
     if(FP_CACHE.size>200000) FP_CACHE.clear(); FP_CACHE.set(key,v); }
@@ -17323,7 +17370,7 @@ function updateVillages(px,pz,dt,nightF,dayF){
       if(vv.ways) for(const k of vv.ways){ const n=(WAYS.get(k)||1)-1; if(n>0) WAYS.set(k,n); else WAYS.delete(k); }
       activeVillages.delete(i); }
   }
-  fpLeft=3; fpCellLeft=700;                      /* this frame's ration of planned ways (Round 137) */
+  fpLeft=3; fpCellLeft=700; fpT0=performance.now();   /* this frame's ration of planned ways (Round 137), and of time */
   for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
     vv.stormF=stormAt(vv.site.x,vv.site.z);      /* foul weather empties the lanes */
     /* THE VILLAGE'S OWN HOUR, read once a frame for everyone in it: the
@@ -24201,7 +24248,7 @@ function* buildAncient(G,ex,site,wy,rnd,cfg,torches,solids,i,rectFree,addRect){
   return {homes};
 }
 window.__KIT={
-  B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer,
+  B, U_PER_M, R_WORLD, WATER_Y, THREE, scene, camera, renderer, GPU, get METER(){ return METER; },
   /* the point a scene holds the eye on, for the sun's map (renewed each frame; it lapses when not), and a new scene's things marked to cast at once */
   shadowFocus:(x,y,z)=>{ SHADOW.focus={x,y,z,n:3}; }, shadowRescan:()=>{ if(SHADOW.rescan) SHADOW.rescan(); },
   makeFigure, makeAnimal:k=>{ try{ return makeAnimal(k); }catch(e){ return null; } },
@@ -24828,7 +24875,7 @@ window.__VDBG={BUILD_STATS,state,setMode,updateChunks,seabedDepth,SITES,landAtWo
     return {x:x0,y:y0,z:z0,grid:out}; },
   /* the town's people stepped without drawing a frame, for a probe that
      keeps a whole night: n steps of dt, the same tick the frame runs */
-  folkStep:(n,dt)=>{ for(let k=0;k<n;k++){ fpLeft=3; fpCellLeft=700;
+  folkStep:(n,dt)=>{ for(let k=0;k<n;k++){ fpLeft=3; fpCellLeft=700; fpT0=performance.now();
       for(const[,vv] of activeVillages){ if(vv.none||!vv.g) continue;
         vv.hour=localHourAt(vv.site.x,vv.site.z);
         for(const p of vv.people) personTick(p,vv,dt);
@@ -26972,7 +27019,7 @@ function updateFalls(px,pz){
 /* ================= THE GREAT LOOP ================= */
 const clock=new THREE.Clock(); let miniT=0, labelT=0, liveT=0;
 function frame(){ orgSnap();
-  requestAnimationFrame(frame);
+  requestAnimationFrame(frameMeasured);
   const dt=Math.min(0.05,clock.getDelta());
   /* before the voyage begins the MENU stands over the living world: the sky
      keeps its hour, the sea runs, the ship rides the swell at her anchorage,
@@ -27630,5 +27677,23 @@ function frame(){ orgSnap();
   stageHook(dt);
   drawWorld();
 }
-frame();
+/* ================= THE MEASURE OF A FRAME (F3) =================
+   Sixty frames a second is sixteen and two thirds milliseconds for everything: the game's own work, the
+   ground laid, and the drawing. F3 shows what each frame costs on THIS computer — the frames a second, the
+   milliseconds of the game's own work, the draws and the triangles the card was given — so the cost is told
+   in numbers and not in a feeling of slowness. The figures are kept in __KIT.METER for the tools too. */
+const METER={on:false,fps:0,js:0,jsMax:0,calls:0,tris:0,n:0,t0:performance.now(),acc:0,max:0,el:null};
+function frameMeasured(){
+  const t=performance.now(); renderer.info.autoReset=false; renderer.info.reset();
+  frame();
+  const js=performance.now()-t, M=METER; M.n++; M.acc+=js; if(js>M.max) M.max=js;
+  M.calls=renderer.info.render.calls; M.tris=renderer.info.render.triangles;
+  if(t-M.t0>=1000){ M.fps=M.n*1000/(t-M.t0); M.js=M.acc/M.n; M.jsMax=M.max; M.n=0; M.acc=0; M.max=0; M.t0=t;
+    if(M.on){ if(!M.el){ M.el=document.createElement('div'); M.el.id='meter';
+        M.el.style.cssText='position:fixed;left:8px;top:8px;z-index:70;padding:6px 10px;background:rgba(10,8,6,.82);color:#f1d573;font:12px/1.5 monospace;border:1px solid #6b5418;border-radius:4px;pointer-events:none;white-space:pre';
+        document.body.appendChild(M.el); }
+      M.el.textContent=M.fps.toFixed(0)+' fps   game '+M.js.toFixed(1)+' ms (worst '+M.jsMax.toFixed(1)+')\n'+M.calls+' draws   '+(M.tris/1e6).toFixed(2)+' M triangles\n'+(GPU.soft?'SOFTWARE DRAWING: ':'')+GPU.name.slice(0,60); M.el.style.display=''; }
+    else if(M.el) M.el.style.display='none'; } }
+addEventListener('keydown',e=>{ if(e.code==='F3'){ METER.on=!METER.on; e.preventDefault(); } });
+frameMeasured();
 };

@@ -186,7 +186,10 @@ STORY.act({
     beats:[
       {t:'say', who:'yah', ref:'YASHAYAHU 8:16'},
       {t:'goal', text:'Go in to the desk where the words are kept', goto:'studyDesk', r:2},
-      {t:'say', who:'yah', ref:'YASHAYAHU 9:6-7'},
+      /* the desk and the naḇi over it, from across the room: the eye at his back saw his head and a corner of the desk */
+      {t:'cam', from:['studyDesk',3.2,1.4], fdy:1.7, look:{at:['studyDesk',-0.6,-1.2], dy:1.0}, dur:1.6},
+      {t:'say', who:'yah', ref:'YASHAYAHU 9:6-7', turn:false},
+      {t:'cam', release:true},
       {t:'witness', text:'Copy the words into your family scroll', items:['scroll1'], verb:'Copy the words', hold:1.6},
       {t:'collect', id:'y9-6'},
       {t:'note', text:'The years go by — the reign of Aḥaz ends, and Ḥizqiyahu his son reigns. The words go on being given, and the taught ones go on keeping them.'},

@@ -1,0 +1,62 @@
+{
+  "name": "the-voyage",
+  "productName": "The Voyage",
+  "version": "1.0.0",
+  "description": "THE VOYAGE — all the earth within the firmament: the voyage, The Fullness of Time, and Scripture Unfolds, as a game of its own",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "stage": "node stage.js",
+    "dist:linux": "node stage.js && electron-builder --linux",
+    "dist:win": "node stage.js && electron-builder --win",
+    "dist": "node stage.js && electron-builder --linux --win"
+  },
+  "devDependencies": {
+    "electron": "31.7.7",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "org.scripturegame.voyage",
+    "productName": "The Voyage",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "game",
+        "to": "game"
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "icon": "game/local/icon.png",
+      "category": "Game",
+      "artifactName": "The-Voyage-${version}-linux-${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "game/local/icon.ico",
+      "signAndEditExecutable": false,
+      "artifactName": "The-Voyage-${version}-windows-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "The Voyage"
+    },
+    "publish": null
+  }
+}
