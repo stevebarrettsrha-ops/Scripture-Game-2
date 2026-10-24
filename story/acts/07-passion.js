@@ -675,17 +675,25 @@ STORY.act({
       {t:'choice', prompt:'The crowd is crying out for Barabba. You', options:[
         {text:'Cry out His name instead', reply:'One voice in all that noise. The man beside you looks at you, and then away, and shouts the louder.'},
         {text:'Say nothing', reply:'You say nothing. Neither does He. Only the crowd is loud.'} ]},
-      /* THE COURT (Yahuchanon 19:1; Mattithyahu 27:27-30): what the soldiers did to Him is read, as the
-         Besorah tells it; the camera is on them and on the post, and on His back, never on a blow */
+      /* THE COURT (Yahuchanon 19:1; Mattithyahu 27:26-30): He is bound to the post and scourged, and the blows are
+         seen — the whips raised and brought down by the two soldiers in turn, and He bowed under them — from a
+         little way off and at His back, so that His face is not shown; no wound is drawn. Then the scarlet robe,
+         the crown of thorns and the mocking, as the Besorah tells them */
       {t:'stand', who:'pilate'},
       {t:'move', who:['yahusha','sold1','sold2'], to:[['palaceIn',0,-1.6],['palaceIn',-1.4,-0.6],['palaceIn',1.4,-0.6]], speed:1},
       {t:'face', who:'yahusha', to:'post'},
       {t:'show', id:['coh0','coh1','coh2','coh3','coh4','coh5']},
       {t:'face', who:'coh0', to:'yahusha'}, {t:'face', who:'coh1', to:'yahusha'}, {t:'face', who:'coh2', to:'yahusha'},
       {t:'face', who:'coh3', to:'yahusha'}, {t:'face', who:'coh4', to:'yahusha'}, {t:'face', who:'coh5', to:'yahusha'},
-      {t:'cam', from:{rel:'yahusha', off:[1.9,1.5,3.4]}, look:'yahusha', dur:2.4},
-      {t:'note', text:'What was done to Him in the court is told here as the Besorah tells it. It is not shown.'},
+      {t:'bind', who:'yahusha'},
+      {t:'face', who:'sold1', to:'yahusha'}, {t:'face', who:'sold2', to:'yahusha'},
+      {t:'cam', from:{rel:'yahusha', off:[2.8,1.7,4.2]}, look:'yahusha', dur:2.4},
+      {t:'scourge', who:['sold1','sold2'], at:'yahusha'},
       {t:'read', ref:'YAHUCHANON 19:1'},
+      {t:'read', ref:'MATTITHYAHU 27:26'},
+      {t:'scourge', who:['sold1','sold2'], stop:true},
+      {t:'bind', who:'yahusha', off:true},
+      {t:'cam', from:{rel:'yahusha', off:[1.9,1.5,3.4]}, look:'yahusha', dur:2.0},
       {t:'read', ref:'MATTITHYAHU 27:27'},
       {t:'robe', who:'yahusha', color:0xd6c9a8, mantle:0x9a1f26},
       {t:'read', ref:'MATTITHYAHU 27:28'},

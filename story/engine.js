@@ -1184,6 +1184,21 @@ function animFigure(g,dt,moving){
     if(!u.sit&&!u.kneel){ u.legL.rotation.set(0,0,up?-0.03:0); u.legR.rotation.set(0,0,up?0.03:0);
       for(const L of [u.legL,u.legR]) if(L.userData.knee) L.userData.knee.rotation.x=up?0.08:0; }
     if(up&&u.head) u.head.rotation.x=0.22; u.posed=true; }
+  /* BOUND TO THE POST (the `bind` beat; Yahuchanon 19:1): the hands forward to it and together, the head bowed —
+     and bowed lower, a moment, at every stroke (u.flinch) */
+  if(u.bound&&u.armL){ const f=Math.max(0,u.flinch||0);
+    u.armL.rotation.set(-1.2-f*0.25,0,0.3); u.armR.rotation.set(-1.2-f*0.25,0,-0.3);
+    for(const A of [u.armL,u.armR]) if(A.userData.elbow) A.userData.elbow.rotation.x=-0.35;
+    if(u.head) u.head.rotation.x=0.38+f*0.9; u.posed=true; }
+  if(u.flinch>0) u.flinch=Math.max(0,u.flinch-dt*1.6);
+  /* THE SCOURGE (the `scourge` beat; Yahuchanon 19:1, Mattithyahu 27:26): the whip raised slowly over the
+     shoulder and brought down fast, the two soldiers in turn; at the stroke the one bound bows under it */
+  if(u.flog&&u.armR){ const F=u.flog; F.t+=dt; const per=1.3, p=((F.t+F.off)%per)/per;
+    const a=p<0.6?-0.4-2.6*(p/0.6):-3.0+2.7*Math.min(1,(p-0.6)/0.1);
+    u.armR.rotation.set(a,0,-0.15); if(u.armR.userData.elbow) u.armR.userData.elbow.rotation.x=p<0.6?-0.5:0;
+    if(F.whip) F.whip.rotation.x=p<0.6?0.9:(p<0.72?-0.2:0.35);
+    if(F.lastP!==undefined&&F.lastP<0.7&&p>=0.7&&F.target){ const tg=ctx.actors[F.target]; if(tg) tg.userData.flinch=0.5; }
+    F.lastP=p; u.posed=true; }
   /* HOLDING something in both hands before him (the `hold` beat): the arms forward, the elbows bent */
   else if(u.holding&&u.armL){ u.armL.rotation.set(-0.95,0,-0.16); u.armR.rotation.set(-0.95,0,0.16);
     for(const A of [u.armL,u.armR]) if(A.userData.elbow) A.userData.elbow.rotation.x=-0.55; u.posed=true; }
@@ -2200,6 +2215,17 @@ function enterBeat(){
   /* `loose`: chains fallen off the hands (Acts 12:7; 16:26) — the end on the bound one drops where it was */
   if(T==='loose'){ for(const id of [].concat(B.id)){ const o=ctx.things[id]; if(o&&o.userData.ends){ const a=o.userData.ends[0].clone(); a.y=(ctx.groundY(a.x,a.z,a.y+0.5)||0)+0.04; o.userData.looseA=a; } } return nextBeat(); }
   if(T==='pose'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g) g.userData.armsOut=B.arms==='out'?true:B.arms==='up'||B.arms==='carry'?B.arms:false; } return nextBeat(); }
+  /* `bind`: bound to the post, the hands forward and the head bowed (`off` unbinds) */
+  if(T==='bind'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g){ g.userData.bound=!B.off; g.userData.flinch=0; if(B.off&&g.userData.head) g.userData.head.rotation.x=0; } } return nextBeat(); }
+  /* `scourge`: the soldiers named take up the whip and lay it on `at`, in turn, until a `scourge` with `stop` */
+  if(T==='scourge'){ [].concat(B.who).forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return; const u=g.userData;
+      if(B.stop){ if(u.flog&&u.flog.whip&&u.flog.whip.parent) u.flog.whip.parent.remove(u.flog.whip); u.flog=null; return; }
+      const hand=u.armR&&u.armR.userData.hand; let whip=null;
+      if(hand){ whip=new THREE.Group(); const leather=new THREE.MeshLambertMaterial({color:0x4a2e1c});
+        const grip=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.26,0.05),leather); grip.position.y=-0.05; whip.add(grip);
+        for(let i=0;i<3;i++){ const th=new THREE.Mesh(new THREE.BoxGeometry(0.018,0.62,0.018),leather); th.position.set((i-1)*0.035,-0.48,(i%2)*0.02); whip.add(th); }
+        hand.add(whip); }
+      u.flog={t:0,off:k*0.65,target:B.at||null,whip}; }); return nextBeat(); }
   /* "they put it on His head" (Mattithyahu 27:29) */
   if(T==='crown'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g&&g.userData.head) window.STORYWORLD.crown(g.userData.head); } return nextBeat(); }
   if(T==='lead'){ const o=ctx.things[B.id]; if(o){ o.userData.leadBy=B.by||null; o.userData.leadBack=B.back; o.userData.leadUp=B.up; o.userData.leadTurn=B.turn; } return nextBeat(); }
