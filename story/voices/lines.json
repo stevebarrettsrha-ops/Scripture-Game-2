@@ -13106,15 +13106,6 @@
     "where": "passion/pilate choice"
    },
    {
-    "key": "8f44a95e936b",
-    "kind": "narrator",
-    "name": "narrator",
-    "who": "The Besorah (narrator)",
-    "text": "What was done to Him in the court is told here as the Besorah tells it. It is not shown.",
-    "kk": "What was done to Him in the court is told here as the beh-soh-rah tells it. It is not shown.",
-    "where": "passion/pilate note"
-   },
-   {
     "key": "64b1e6b46eb7",
     "kind": "narrator",
     "name": "narrator",
@@ -13122,6 +13113,15 @@
     "text": "Then, therefore, Pilate took Yahusha and flogged Him.",
     "kk": "Then, therefore, Pilate took yah-hoo-shah and flogged Him.",
     "where": "passion/pilate YAHUCHANON 19:1"
+   },
+   {
+    "key": "ac6b2c99fddc",
+    "kind": "narrator",
+    "name": "narrator",
+    "who": "The Besorah",
+    "text": "Then he released Barabba to them, but having Yahusha whipped, he delivered Him over to be impaled.",
+    "kk": "Then he released Barabba to them, but having yah-hoo-shah whipped, he delivered Him over to be impaled.",
+    "where": "passion/pilate MATTITHYAHU 27:26"
    },
    {
     "key": "5933e01bdfa8",

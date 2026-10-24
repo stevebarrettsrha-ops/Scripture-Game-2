@@ -1197,6 +1197,10 @@ function animFigure(g,dt,moving){
     const a=p<0.6?-0.4-2.6*(p/0.6):-3.0+2.7*Math.min(1,(p-0.6)/0.1);
     u.armR.rotation.set(a,0,-0.15); if(u.armR.userData.elbow) u.armR.userData.elbow.rotation.x=p<0.6?-0.5:0;
     if(F.whip) F.whip.rotation.x=p<0.6?0.9:(p<0.72?-0.2:0.35);
+    /* (the thongs lag the arm: bent back while it rises, flung forward as it falls, and swinging out after) */
+    if(F.joints&&F.joints.length){ const va=F.prevA===null?0:(a-F.prevA)/Math.max(dt,1e-3); F.prevA=a;
+      F.trail+=(Math.max(-1.4,Math.min(1.4,va*0.09))-F.trail)*Math.min(1,dt*9);
+      for(const q of F.joints) q.J.rotation.x=F.trail*(0.35+0.16*q.j)+Math.sin(F.t*7+q.i*1.7+q.j)*0.06; }
     if(F.lastP!==undefined&&F.lastP<0.7&&p>=0.7&&F.target){ const tg=ctx.actors[F.target]; if(tg) tg.userData.flinch=0.5; }
     F.lastP=p; u.posed=true; }
   /* HOLDING something in both hands before him (the `hold` beat): the arms forward, the elbows bent */
@@ -2221,11 +2225,17 @@ function enterBeat(){
   if(T==='scourge'){ [].concat(B.who).forEach((w,k)=>{ const g=ctx.actors[w]; if(!g) return; const u=g.userData;
       if(B.stop){ if(u.flog&&u.flog.whip&&u.flog.whip.parent) u.flog.whip.parent.remove(u.flog.whip); u.flog=null; return; }
       const hand=u.armR&&u.armR.userData.hand; let whip=null;
-      if(hand){ whip=new THREE.Group(); const leather=new THREE.MeshLambertMaterial({color:0x4a2e1c});
+      /* the whip: a grip and three thongs of leather, each of five joints, so that they trail behind the
+         stroke as it is raised and crack forward as it falls (whipTick) */
+      const joints=[];
+      if(hand){ whip=new THREE.Group(); const leather=new THREE.MeshLambertMaterial({color:0x4a2e1c}), dark=new THREE.MeshLambertMaterial({color:0x2e1c12});
         const grip=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.26,0.05),leather); grip.position.y=-0.05; whip.add(grip);
-        for(let i=0;i<3;i++){ const th=new THREE.Mesh(new THREE.BoxGeometry(0.018,0.62,0.018),leather); th.position.set((i-1)*0.035,-0.48,(i%2)*0.02); whip.add(th); }
+        for(let i=0;i<3;i++){ let parent=whip, y0=-0.18;
+          for(let j=0;j<5;j++){ const J=new THREE.Group(); J.position.set(j?0:(i-1)*0.03,y0,j?0:(i-1)*0.012); parent.add(J);
+            const seg=new THREE.Mesh(new THREE.BoxGeometry(0.02-j*0.002,0.15,0.02-j*0.002),j===4?dark:leather); seg.position.y=-0.075; J.add(seg);
+            joints.push({J,j,i}); parent=J; y0=-0.15; } }
         hand.add(whip); }
-      u.flog={t:0,off:k*0.65,target:B.at||null,whip}; }); return nextBeat(); }
+      u.flog={t:0,off:k*0.65,target:B.at||null,whip,joints,trail:0,prevA:null}; }); return nextBeat(); }
   /* "they put it on His head" (Mattithyahu 27:29) */
   if(T==='crown'){ for(const w of [].concat(B.who)){ const g=ctx.actors[w]; if(g&&g.userData.head) window.STORYWORLD.crown(g.userData.head); } return nextBeat(); }
   if(T==='lead'){ const o=ctx.things[B.id]; if(o){ o.userData.leadBy=B.by||null; o.userData.leadBack=B.back; o.userData.leadUp=B.up; o.userData.leadTurn=B.turn; } return nextBeat(); }
